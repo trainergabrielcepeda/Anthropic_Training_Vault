@@ -1,0 +1,170 @@
+{
+  "topic": "Claude Models & API",
+  "questions": [
+    {
+      "question": "A developer needs to classify 50,000 support tickets per day with sub-200ms latency. Which Claude model tier is most appropriate?",
+      "options": [
+        "Haiku — optimized for speed and high-volume, low-latency tasks",
+        "Sonnet — the balanced model handles most tasks efficiently",
+        "Opus — highest capability ensures accurate classification",
+        "Any tier works equally; latency is controlled via streaming, not model choice"
+      ],
+      "correct": 0,
+      "explanation": "Haiku is the low-latency, high-volume tier. Sonnet and Opus are slower and more expensive; the task complexity here doesn't justify them."
+    },
+    {
+      "question": "What happens if you omit the required `max_tokens` parameter from a Messages API request?",
+      "options": [
+        "The request fails with a 400 invalid_request_error",
+        "Claude uses a default of 1,024 output tokens",
+        "Claude uses the model's full context window as the output limit",
+        "The request succeeds but output may be silently truncated"
+      ],
+      "correct": 0,
+      "explanation": "max_tokens is required. Omitting it returns a 400 invalid_request_error immediately — unlike some other APIs, there is no default."
+    },
+    {
+      "question": "A response returns `stop_reason: \"max_tokens\"`. What does this mean for the response content?",
+      "options": [
+        "The response was truncated — Claude stopped at the token limit, not at a natural end",
+        "The response completed normally and happened to use exactly the max_tokens budget",
+        "Claude stopped for safety reasons and the response may be incomplete",
+        "The context window is full; the conversation must be reset before continuing"
+      ],
+      "correct": 0,
+      "explanation": "stop_reason \"max_tokens\" means output was cut off mid-generation. The response may be incomplete. Increase max_tokens or redesign the prompt to produce shorter output."
+    },
+    {
+      "question": "You want Claude to always start its response with `{` to produce valid JSON. What technique achieves this most reliably?",
+      "options": [
+        "Assistant prefilling — add an assistant message with content: \"{\" as the last item in the messages array",
+        "Set `response_format: {\"type\": \"json_object\"}` in the request body",
+        "End your system prompt with: \"Begin every response with the character {\"",
+        "Use `stop_sequences: [\"}\"]` to bookend the JSON output"
+      ],
+      "correct": 0,
+      "explanation": "Prefilling the assistant message with \"{\" forces Claude to continue from that exact character. The response_format parameter used in other APIs does not exist in the Claude API."
+    },
+    {
+      "question": "What is the context window size for all current Claude models (Haiku, Sonnet, Opus)?",
+      "options": [
+        "200,000 tokens for all current Claude models",
+        "100,000 tokens for Haiku, 200,000 for Sonnet and Opus",
+        "128,000 tokens for all current models",
+        "32k tokens (Haiku), 100k (Sonnet), 200k (Opus)"
+      ],
+      "correct": 0,
+      "explanation": "All current Claude models share a 200,000-token context window covering the combined input and output tokens in a single request."
+    },
+    {
+      "question": "The API returns a 429 error. What is the correct response from your application?",
+      "options": [
+        "Retry with exponential backoff — most SDKs handle this automatically",
+        "Switch to a lower-tier model immediately to reduce load on Anthropic's servers",
+        "Reduce max_tokens and retry immediately without waiting",
+        "Pause for 24 hours and retry; 429s indicate a daily quota breach"
+      ],
+      "correct": 0,
+      "explanation": "429 is a rate-limit error, not a daily quota. Retry with exponential backoff. The Anthropic Python and TypeScript SDKs handle automatic retries by default."
+    },
+    {
+      "question": "You send a conversation with the message sequence: user → user → assistant. What happens?",
+      "options": [
+        "The request fails with a 400 error — messages must alternate between user and assistant roles",
+        "Succeeds — Claude concatenates the two consecutive user messages into one turn",
+        "Succeeds — the first user message is silently ignored and only the second is processed",
+        "Fails with a 422 unprocessable entity error listing the invalid role sequence"
+      ],
+      "correct": 0,
+      "explanation": "Messages must strictly alternate between user and assistant roles. Two consecutive user messages cause a 400 invalid_request_error."
+    },
+    {
+      "question": "Approximately how many tokens is one average English word?",
+      "options": [
+        "~1.3 tokens per word (roughly 3–4 characters per token)",
+        "Exactly 1 token per word",
+        "~2 tokens per word",
+        "~0.75 tokens per word"
+      ],
+      "correct": 0,
+      "explanation": "Roughly 1.3 tokens per word, so 1,000 tokens ≈ 750 words. Technical or uncommon words tokenize to more; common short words often to fewer."
+    },
+    {
+      "question": "You want to ensure your application doesn't break when Anthropic releases a new version of Sonnet. What should you do?",
+      "options": [
+        "Pin to a specific dated model ID (e.g., `claude-sonnet-4-6`) rather than an undated alias",
+        "Use the undated alias `claude-sonnet` — it resolves to the most stable available version",
+        "Set `\"model_lock\": true` in your API request parameters",
+        "Monitor Anthropic's changelog and manually update the model ID after each release"
+      ],
+      "correct": 0,
+      "explanation": "Undated aliases always point to the latest model release and can change behavior without warning. Pinning to a full, dated model ID gives you stable, predictable outputs."
+    },
+    {
+      "question": "Which parameter controls the randomness of Claude's output?",
+      "options": [
+        "temperature (0–1 scale; lower = more deterministic)",
+        "top_p (nucleus sampling threshold — the primary randomness control)",
+        "frequency_penalty (penalizes repeated tokens)",
+        "seed (makes outputs reproducible across identical calls)"
+      ],
+      "correct": 0,
+      "explanation": "temperature is the primary randomness control. top_p is an alternative sampling strategy; don't use both together. frequency_penalty and seed are not standard Claude API parameters."
+    },
+    {
+      "question": "Claude returns a response with two content blocks: one `text` and one `tool_use`. What should your application do?",
+      "options": [
+        "Handle both — optionally display the text and always execute the tool_use block",
+        "Only process the tool_use block; text blocks alongside tool_use are informational metadata",
+        "Return an error — Claude should produce either text or tool_use, never both",
+        "Process whichever block appears last in the content array"
+      ],
+      "correct": 0,
+      "explanation": "Both blocks must be handled. The text often explains what Claude is doing; the tool_use block must always receive a tool_result response before generation can continue."
+    },
+    {
+      "question": "What is the purpose of the `metadata.user_id` field in a Messages API request?",
+      "options": [
+        "Logging and analytics; Anthropic may also use it for safety monitoring",
+        "Selects which user profile Claude personalizes responses for",
+        "Required for multi-user deployments to prevent conversation context mixing",
+        "Determines which rate-limit bucket the request is counted against"
+      ],
+      "correct": 0,
+      "explanation": "metadata.user_id is optional and has no effect on Claude's response. It helps you with logging and gives Anthropic signal for abuse detection."
+    },
+    {
+      "question": "You need Claude to stop generating as soon as it writes the string `END`. How do you achieve this?",
+      "options": [
+        "Set `stop_sequences: [\"END\"]` in the request — the string will not appear in the output",
+        "Set `end_token: \"END\"` in the request body",
+        "Add \"Stop generating when you output the word END\" to your system prompt",
+        "Use `suffix: \"END\"` to mark the end of the desired output"
+      ],
+      "correct": 0,
+      "explanation": "stop_sequences causes Claude to halt when it would produce that string. The string itself is consumed and does not appear in the response content."
+    },
+    {
+      "question": "The API returns a 529 error. What caused it and how should you respond?",
+      "options": [
+        "Anthropic's servers are temporarily overloaded — retry with exponential backoff",
+        "Your API key is invalid — check and rotate credentials immediately",
+        "The request payload exceeds the maximum size — reduce your prompt length",
+        "The requested model is unavailable in your region"
+      ],
+      "correct": 0,
+      "explanation": "529 overloaded_error means the API is under heavy load. Handle it the same way as a 429: retry with exponential backoff."
+    },
+    {
+      "question": "The token counting endpoint returns 195,000 input tokens. You plan to allow up to 8,000 output tokens on a model with a 200,000-token context window. Is this request safe to send?",
+      "options": [
+        "No — 195,000 + 8,000 = 203,000 tokens exceeds the 200,000-token context window",
+        "Yes — max_tokens caps the output but is not counted against the context window",
+        "Yes — output tokens are tracked separately from input tokens in the context limit",
+        "Yes — the 200k limit applies only to the messages array, not the system prompt"
+      ],
+      "correct": 0,
+      "explanation": "Input tokens and output tokens both count toward the context window. 195k + 8k = 203k, which exceeds the 200k limit. You must reduce the input or lower max_tokens."
+    }
+  ]
+}

@@ -1,6 +1,8 @@
-# Anthropic CAA Certification Training Vault
+# Anthropic CAA Architect Foundations — Training Vault
 
 An Obsidian vault with structured study materials to prepare for the **Anthropic Certified AI Associate (CAA)** certification exam.
+
+> **Start here if you haven't opened Obsidian yet.** This file covers cloning the repo, installing plugins, and connecting Claude Code. Once the vault is loaded in Obsidian, open **`Home.md`** — that's your study hub with topic navigation, exam weights, and links to all notes and exercises.
 
 ## What's Inside
 
@@ -38,15 +40,15 @@ This vault covers the core domains tested in the CAA exam, including:
    - Turn off **Restricted mode** if prompted
    - Click **Turn on community plugins**
 
-4. The vault includes three pre-configured plugins. Install each one via **Settings → Community plugins → Browse**, search by name, and click **Install** then **Enable**:
-
-   | Plugin | Purpose |
-   |--------|---------|
-   | **Git** | Syncs the vault with this repository — use it to pull updates and push your notes |
-   | **Terminal** | Opens a terminal panel inside Obsidian for running CLI commands |
-   | **Local REST API with MCP** | Exposes a local API so Claude Code and other AI tools can read and write your vault |
+4. The vault includes three pre-configured plugins. Install each one via **Settings → Community plugins → Browse**, search by name, and click **Install** then **Enable**.
 
 5. After enabling all three plugins, restart Obsidian to ensure they initialize correctly.
+
+| Plugin | Purpose |
+| ------ | ------- |
+| **Git** | Syncs the vault with this repository — use it to pull updates and push your notes |
+| **Terminal** | Opens a terminal panel inside Obsidian for running CLI commands |
+| **Local REST API with MCP** | Exposes a local API so Claude Code and other AI tools can read and write your vault |
 
 ### Plugin Setup Details
 
@@ -93,12 +95,11 @@ This step lets Claude interact with Obsidian live — opening notes, searching, 
 
 1. Make sure the **Local REST API with MCP** plugin is running in Obsidian.
 2. Find your API key in Obsidian: **Settings → Local REST API → API Key**.
-3. In a terminal inside the vault, run:
+3. In a terminal inside the vault, run the command below — replace `YOUR_API_KEY` with the key from step 2:
    ```bash
-   claude mcp add obsidian-vault --transport http --url https://127.0.0.1:27124/mcp
+   claude mcp add obsidian-vault --transport http https://127.0.0.1:27124/mcp --header "Authorization: Bearer YOUR_API_KEY"
    ```
-4. When prompted, paste your API key as the bearer token.
-5. Verify the connection:
+4. Verify the connection:
    ```bash
    claude mcp list
    ```
@@ -109,7 +110,7 @@ After this, you can ask Claude things like "summarize all my notes on prompt eng
 ### Useful Claude Code commands
 
 | Command | What it does |
-|---------|-------------|
+| ------- | ------------ |
 | `claude` | Start interactive session in the vault directory |
 | `claude "your question"` | One-shot question, no interactive session |
 | `claude mcp list` | Show connected MCP servers |

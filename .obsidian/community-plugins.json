@@ -1,5 +1,6 @@
 [
   "terminal",
   "obsidian-local-rest-api",
-  "obsidian-git"
+  "obsidian-git",
+  "js-engine"
 ]

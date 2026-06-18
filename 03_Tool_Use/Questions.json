@@ -1,0 +1,170 @@
+{
+  "topic": "Tool Use & Function Calling",
+  "questions": [
+    {
+      "question": "What is the most important field in a tool definition, and why?",
+      "options": [
+        "`description` — Claude uses it to decide whether to call the tool and which tool to call",
+        "`name` — must be unique and clearly identifies the tool to Claude",
+        "`input_schema` — defines the exact data structure Claude must provide",
+        "`required` — determines when Claude is obligated to call the tool"
+      ],
+      "correct": 0,
+      "explanation": "A vague description causes missed or wrong tool calls. The description should explain what the tool does, when to use it, and importantly, when NOT to use it."
+    },
+    {
+      "question": "What `stop_reason` value tells you that Claude wants to call a tool?",
+      "options": [
+        "\"tool_use\" — Claude has produced one or more tool_use content blocks",
+        "\"function_call\" — the term used when tool execution is requested",
+        "\"stop\" — the generic signal for any non-natural termination",
+        "\"end_turn\" — Claude has finished its reasoning and is ready to act"
+      ],
+      "correct": 0,
+      "explanation": "stop_reason: \"tool_use\" means Claude produced tool_use content blocks. You must execute each one and return tool_result blocks before generation can continue."
+    },
+    {
+      "question": "A `tool_use` content block contains an `id` field. When and how is this ID used?",
+      "options": [
+        "As `tool_use_id` in the matching `tool_result` block — it maps results back to the correct call",
+        "For logging and debugging tool call sequences in your application",
+        "As the session cache key for caching repeated tool results",
+        "To deduplicate parallel tool calls that have identical arguments"
+      ],
+      "correct": 0,
+      "explanation": "Each tool_result must include a tool_use_id that exactly matches the id of the corresponding tool_use block. Without this match, Claude cannot map the result to the right call."
+    },
+    {
+      "question": "Claude calls a tool but your execution code returns a 503 error. How should you handle this?",
+      "options": [
+        "Return a `tool_result` with `is_error: true` and an error message as the content",
+        "Silently retry the tool execution up to three times before notifying Claude",
+        "Omit the tool_result — Claude will detect the missing result and retry automatically",
+        "Return an empty tool_result with a null content field"
+      ],
+      "correct": 0,
+      "explanation": "Never silently ignore a tool call. Return is_error: true with an error message so Claude can acknowledge the failure, explain it to the user, and potentially suggest alternatives."
+    },
+    {
+      "question": "What `tool_choice` value forces Claude to call one specific named tool?",
+      "options": [
+        "{\"type\": \"tool\", \"name\": \"<tool_name>\"} — forces that exact tool to be called",
+        "{\"type\": \"required\"} — forces Claude to call any available tool",
+        "{\"type\": \"forced\", \"tool\": \"<tool_name>\"} — the forced-tool syntax",
+        "Listing that tool as the only entry in the tools array"
+      ],
+      "correct": 0,
+      "explanation": "{\"type\": \"tool\", \"name\": \"...\"} forces a specific tool. {\"type\": \"required\"} forces any tool. {\"type\": \"auto\"} lets Claude decide. {\"type\": \"none\"} prevents all tool calls."
+    },
+    {
+      "question": "Claude produces two `tool_use` blocks in a single response. What does this mean and how do you handle it?",
+      "options": [
+        "Parallel tool calls — execute both independently and return both tool_results in one user message",
+        "An error state — Claude should never produce more than one tool call per response",
+        "Sequential calls — execute the first, return its result, then Claude will request the second",
+        "Ambiguity — Claude is uncertain which tool to use; only execute the first and await clarification"
+      ],
+      "correct": 0,
+      "explanation": "Multiple tool_use blocks in one response mean parallel calls — Claude believes they are independent. Return all tool_results in the same user message turn. You can execute them concurrently."
+    },
+    {
+      "question": "You want to extract structured data from documents and always receive a typed JSON object without string parsing. What is the tool-based approach?",
+      "options": [
+        "Define a tool whose `input_schema` matches the target structure and set `tool_choice` to force it",
+        "Set `response_format: {\"type\": \"json_object\"}` and parse the text response",
+        "Use assistant prefilling with \"{\" and extract the JSON from the text output",
+        "Define the JSON schema in the system prompt and instruct Claude to follow it strictly"
+      ],
+      "correct": 0,
+      "explanation": "When Claude is forced to call a tool, the tool_use block's input field is already a parsed dict matching your input_schema — no JSON string parsing needed."
+    },
+    {
+      "question": "What JSON Schema type declaration allows a field to be either a number or null?",
+      "options": [
+        "\"type\": [\"number\", \"null\"]",
+        "\"type\": \"number\", \"nullable\": true",
+        "\"type\": \"number\", \"optional\": true",
+        "\"type\": \"number\", \"default\": null"
+      ],
+      "correct": 0,
+      "explanation": "An array of types — [\"number\", \"null\"] — is the correct JSON Schema syntax for a field that accepts a number or null. This signals the field is optional and Claude should use null when the value is absent."
+    },
+    {
+      "question": "After you send a `tool_result`, Claude's next response has `stop_reason: \"tool_use\"` again. What happened and what should you do?",
+      "options": [
+        "Claude is chaining tools — continue the loop, executing tool calls and returning results until `stop_reason` is `\"end_turn\"`",
+        "An error in your tool_result format caused Claude to retry the same call",
+        "Claude is parallelizing — return this new result simultaneously with the previous one",
+        "The context window is almost full — start a new conversation session"
+      ],
+      "correct": 0,
+      "explanation": "Tool chaining is normal in agentic workflows. Claude needs the first tool's result to decide what to call next. Keep looping until stop_reason is end_turn."
+    },
+    {
+      "question": "What does `tool_choice: {\"type\": \"none\"}` do?",
+      "options": [
+        "Prevents Claude from calling any tools for that request, even if tools are defined",
+        "Allows Claude to choose whether to call a tool or generate text",
+        "Removes all tools from the request temporarily without modifying the tools array",
+        "Marks all tools as optional hints for that turn only"
+      ],
+      "correct": 0,
+      "explanation": "\"none\" disables tool calling entirely for that request. Useful when you need a text response mid-workflow without allowing Claude to make further tool calls."
+    },
+    {
+      "question": "A tool's `input_schema` has a `status` property but no `required` field. What does Claude do if the status is not mentioned by the user?",
+      "options": [
+        "Claude may omit the field entirely — without `required`, all properties are optional",
+        "Claude asks the user to supply the missing value before completing the tool call",
+        "Claude infers a default value based on the field name and description",
+        "The API returns a 400 error because the schema is incomplete"
+      ],
+      "correct": 0,
+      "explanation": "Without a `required` array, all properties are optional in JSON Schema. Claude may omit them. Add `\"required\": [\"status\"]` if the field is mandatory."
+    },
+    {
+      "question": "Why must tool names match the pattern `^[a-zA-Z0-9_-]{1,64}$`?",
+      "options": [
+        "The API requires it — spaces and special characters cause a 400 invalid_request_error",
+        "Snake_case is a style convention; any format works at the API level",
+        "The pattern improves Claude's ability to reason about tool names semantically",
+        "Tool names are compiled into function signatures that require valid identifier syntax"
+      ],
+      "correct": 0,
+      "explanation": "This is an API constraint, not just style. Violating it returns a 400 error. Keep names to alphanumeric characters, underscores, and hyphens, max 64 characters."
+    },
+    {
+      "question": "You have 10 tools available and Claude consistently calls the wrong one. What is the most likely cause?",
+      "options": [
+        "Poor or ambiguous tool descriptions — with many tools, descriptions are the primary selection signal",
+        "Too many tools — the API recommends no more than 5 tools per request",
+        "The correct tool is listed too late in the tools array",
+        "`tool_choice` should be set to `\"required\"` to force Claude to pick a tool"
+      ],
+      "correct": 0,
+      "explanation": "With many tools, Claude relies almost entirely on descriptions to distinguish between them. Make each tool's scope, trigger conditions, and exclusions explicit and unambiguous."
+    },
+    {
+      "question": "What happens if you forget to append the assistant's `tool_use` response to the messages array before sending the `tool_result`?",
+      "options": [
+        "The conversation becomes invalid — Claude sees a tool_result with no matching tool_use, causing a 400 error",
+        "The tool_result is silently ignored and Claude generates a text response instead",
+        "Claude infers the missing tool_use from context and processes the result anyway",
+        "A 422 unprocessable entity error is returned indicating unexpected message ordering"
+      ],
+      "correct": 0,
+      "explanation": "The full assistant message (including all tool_use blocks) must always be appended before appending the tool_result message. Skipping this creates an invalid conversation state."
+    },
+    {
+      "question": "True or false: Claude executes tool code on Anthropic's servers when a tool call is made.",
+      "options": [
+        "False — Claude only produces a `tool_use` request; your code is always responsible for execution",
+        "True — Claude executes sandboxed tool code server-side and returns the output",
+        "True for built-in Anthropic tools; false for custom tools defined by the developer",
+        "True only for computer-use tools; all other tool types are executed client-side"
+      ],
+      "correct": 0,
+      "explanation": "Claude never runs code. It produces tool_use content blocks as structured requests. Your application receives those requests, executes the actual logic, and returns results via tool_result blocks."
+    }
+  ]
+}

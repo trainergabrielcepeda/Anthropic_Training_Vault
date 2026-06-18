@@ -1,0 +1,170 @@
+{
+  "topic": "Production & Evaluation",
+  "questions": [
+    {
+      "question": "What is the minimum token threshold for prompt caching to activate on Sonnet and Opus?",
+      "options": [
+        "2,048 tokens for Sonnet and Opus; 1,024 tokens for Haiku",
+        "1,000 tokens for all models",
+        "4,096 tokens for Sonnet and Opus; 2,048 tokens for Haiku",
+        "Any length — the API automatically caches all repeated prefixes"
+      ],
+      "correct": 0,
+      "explanation": "Caching only activates above the minimum threshold: 2,048 tokens (Sonnet/Opus) or 1,024 tokens (Haiku). Shorter prefixes are processed normally every request."
+    },
+    {
+      "question": "You have a 5,000-token system prompt that is identical across all users. Where should you place the `cache_control` breakpoint?",
+      "options": [
+        "At the end of the system prompt — everything before the breakpoint is cached; dynamic per-user content goes after",
+        "At the beginning of the system prompt — Claude caches from the very first token",
+        "On each user message individually, since user messages are what repeat most often",
+        "In the API request headers, not in the message content"
+      ],
+      "correct": 0,
+      "explanation": "The breakpoint marks the end of the stable prefix. Everything before it is cached and re-used. Dynamic content (user messages) must come after the breakpoint to avoid cache misses."
+    },
+    {
+      "question": "A cache breakpoint is set correctly but subsequent requests are not hitting the cache. What is the most likely cause?",
+      "options": [
+        "The prefix is not exactly identical — even one character difference (timestamp, username, trailing space) invalidates the cache",
+        "The cache TTL expired — increase the cache lifetime in API settings",
+        "A recent model version update invalidated all existing cache entries",
+        "The cache_control breakpoint must be re-declared on every request to remain active"
+      ],
+      "correct": 0,
+      "explanation": "Prompt caching uses exact-match on the prefix. Any variation — a timestamp, a user name, a different whitespace character — causes a cache miss and a full cache write."
+    },
+    {
+      "question": "What is the maximum number of `cache_control` breakpoints allowed in a single request?",
+      "options": [
+        "4",
+        "1",
+        "8",
+        "Unlimited — any content block can have a cache_control marker"
+      ],
+      "correct": 0,
+      "explanation": "A maximum of 4 cache_control breakpoints are allowed per request. Place them strategically after the longest stable prefixes."
+    },
+    {
+      "question": "How long does a prompt cache entry persist after its last use?",
+      "options": [
+        "5 minutes — each cache hit resets the TTL clock",
+        "24 hours after the first write",
+        "Until the API session or authentication token expires",
+        "Permanently, until you manually invalidate it"
+      ],
+      "correct": 0,
+      "explanation": "Cache entries have a 5-minute ephemeral TTL. A hit resets the clock. If no request hits the entry within 5 minutes, the next request is a cache write (paying full input token cost)."
+    },
+    {
+      "question": "What is the cost discount for the Batch API compared to the real-time Messages API?",
+      "options": [
+        "50% discount on both input and output tokens; results returned within 24 hours",
+        "25% discount on input tokens only; output tokens are billed at the standard rate",
+        "75% discount on output tokens; no discount on input tokens",
+        "30% flat discount across all token types"
+      ],
+      "correct": 0,
+      "explanation": "The Batch API offers a 50% discount on both input and output tokens in exchange for asynchronous processing. Results are returned within 24 hours."
+    },
+    {
+      "question": "You submit a Batch API job. How do you retrieve the results?",
+      "options": [
+        "Poll `batches.retrieve(batch_id)` until `processing_status` is `\"ended\"`, then iterate `batches.results(batch_id)` — each result has a `custom_id` and a `result` object",
+        "Results are automatically sent to a webhook URL you specify at job submission",
+        "Call `batches.get_results(batch_id)` immediately after submission — it blocks until results are ready",
+        "Subscribe to a `batch_complete` event via the streaming API"
+      ],
+      "correct": 0,
+      "explanation": "Poll for status \"ended\", then call .results() to iterate. Each result object includes your custom_id for correlation and a result with the full message or error."
+    },
+    {
+      "question": "Which metric specifically measures how long a user waits before seeing the first word of a streamed response?",
+      "options": [
+        "Time-to-first-token (TTFT) — streaming dramatically reduces this even when total generation time is the same",
+        "Total latency — the time from request to full response delivery",
+        "Perceived response time (PRT) — a composite metric for user experience",
+        "Token generation rate (TGR) — tokens produced per second after the first token"
+      ],
+      "correct": 0,
+      "explanation": "TTFT measures perceived responsiveness. With streaming, users see the first word in milliseconds. Total latency measures the full response time and is a separate metric."
+    },
+    {
+      "question": "You want to route simple classification tasks to Haiku and complex reasoning to Sonnet. What is this pattern called?",
+      "options": [
+        "Model routing (or model tiering) — a lightweight classifier selects the cheapest model that meets quality requirements",
+        "Prompt compression — reduce prompt length so simpler models can handle it",
+        "Cascading inference — try Haiku first, escalate to Sonnet if confidence is low",
+        "Adaptive sampling — adjust sampling parameters based on task complexity"
+      ],
+      "correct": 0,
+      "explanation": "Model routing matches task complexity to model capability. Simple tasks use cheap, fast Haiku; complex ones use Sonnet. Done well, it cuts cost significantly without sacrificing quality."
+    },
+    {
+      "question": "You run the same eval suite on Prompt V1 and V2. One test case drops from 4.2 to 2.8 on the clarity criterion. What does this indicate?",
+      "options": [
+        "A regression — Prompt V2 is significantly worse on clarity for that case; investigate before deploying",
+        "Normal variance — score differences under 2 points are within acceptable LLM judge margins",
+        "Prompt V2 is optimizing a different dimension; the clarity tradeoff may be acceptable",
+        "The eval is unreliable — LLM judges produce noisy scores and this delta is not significant"
+      ],
+      "correct": 0,
+      "explanation": "A drop from 4.2 to 2.8 is a meaningful regression. Before shipping V2, understand what change caused it and decide whether the tradeoff is acceptable — don't ignore it."
+    },
+    {
+      "question": "Why should you use a stronger model (Sonnet or Opus) as your LLM judge even if you use Haiku for production?",
+      "options": [
+        "The judge's quality determines eval reliability — a weak judge gives noisy, miscalibrated scores that make your eval useless",
+        "Stronger models run in a separate billing environment so judge calls don't affect production costs",
+        "Anthropic's eval guidelines require a judge model at least one tier above the production model",
+        "Judge quality only matters for creative tasks; Haiku is sufficient for factual or structured evals"
+      ],
+      "correct": 0,
+      "explanation": "Evals run on a sample, not every request, so paying for a strong judge is cheap relative to the value of reliable quality signal. A weak judge defeats the purpose of evaluating."
+    },
+    {
+      "question": "What is the key rule for separating your prompt optimization set from your evaluation set?",
+      "options": [
+        "Never optimize prompts against the same test cases you use to measure quality — doing so causes overfitting to the eval",
+        "The training set must be at least 10× larger than the evaluation set for valid results",
+        "Use a different model version for training runs versus evaluation runs",
+        "Test cases must be randomly re-sampled fresh on every evaluation run"
+      ],
+      "correct": 0,
+      "explanation": "Optimizing against your eval set measures performance on those specific examples, not real-world generalization. You'll score well on the eval while shipping a worse product."
+    },
+    {
+      "question": "Output tokens are priced at 3–5× the rate of input tokens. Name two strategies to reduce output token cost.",
+      "options": [
+        "Explicit length/format constraints (\"answer in one sentence\") and tight `max_tokens` for constrained tasks",
+        "Enabling streaming mode and increasing temperature to reach answers faster",
+        "Using the Batch API and compressing the system prompt",
+        "Switching to an older model version and adding stop_sequences to end responses earlier"
+      ],
+      "correct": 0,
+      "explanation": "Length constraints and tight max_tokens directly cap output tokens. Using structured output (JSON instead of prose) and routing verbose tasks to Haiku also reduce output spend."
+    },
+    {
+      "question": "You add prompt caching to a multi-turn customer support bot. Where should the cache breakpoint be placed?",
+      "options": [
+        "At the end of the growing conversation history — after the last assistant message, caching the accumulated conversation so far",
+        "Only on the system prompt — conversation history should not be cached as it changes every turn",
+        "At the beginning of each new user message",
+        "After every third exchange to balance cache freshness and cost"
+      ],
+      "correct": 0,
+      "explanation": "Cache as much of the stable accumulated conversation as possible. Place the breakpoint after the latest assistant message. As new messages arrive, move the breakpoint forward."
+    },
+    {
+      "question": "Name three metrics you should monitor in a production Claude deployment.",
+      "options": [
+        "Any three of: latency (TTFT and total), error rate (4xx/5xx), token usage per request, refusal rate, user satisfaction (CSAT), cache hit rate, cost per request",
+        "Model version, API key rotation frequency, and system prompt length",
+        "CPU utilization, memory consumption, and disk I/O on your inference servers",
+        "Request count, response word count, and session duration"
+      ],
+      "correct": 0,
+      "explanation": "Core production metrics: latency, error rate, token cost, refusal rate, user satisfaction, cache efficiency. Together they give you visibility into quality, cost, and reliability."
+    }
+  ]
+}

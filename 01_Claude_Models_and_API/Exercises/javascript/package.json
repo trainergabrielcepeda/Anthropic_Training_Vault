@@ -1,0 +1,11 @@
+{
+  "name": "topic01-exercises",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node 01_basic_messages.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0"
+  }
+}
