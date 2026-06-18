@@ -61,9 +61,10 @@ This vault covers the core domains tested in the CAA exam, including:
 - The default shell on Linux/macOS is `/bin/sh`; you can change it in **Settings → Terminal → Profiles**.
 
 #### Local REST API with MCP
-- On first enable, the plugin generates a local TLS certificate and API key automatically — no manual configuration needed.
+- On first enable, the plugin generates an API key automatically — no manual configuration needed.
 - Your API key is stored in `.obsidian/plugins/obsidian-local-rest-api/data.json`, which is gitignored and never shared.
-- The API listens on `https://127.0.0.1:27124` by default. It is only accessible from your machine.
+- Enable the **HTTP server** in **Settings → Local REST API** — the plugin supports both HTTPS (port 27124) and HTTP (port 27123). Use HTTP to avoid self-signed certificate errors with Claude Code.
+- The API is only accessible from your machine.
 - To connect Claude Code, run `claude mcp add` and point it at the MCP endpoint shown in **Settings → Local REST API**.
 
 ## Using Claude Code with the Vault
@@ -97,8 +98,9 @@ This step lets Claude interact with Obsidian live — opening notes, searching, 
 2. Find your API key in Obsidian: **Settings → Local REST API → API Key**.
 3. In a terminal inside the vault, run the command below — replace `YOUR_API_KEY` with the key from step 2:
    ```bash
-   claude mcp add obsidian-vault --transport http https://127.0.0.1:27124/mcp --header "Authorization: Bearer YOUR_API_KEY"
+   claude mcp add --transport http obsidian-vault http://127.0.0.1:27123/mcp --header "Authorization: Bearer YOUR_API_KEY"
    ```
+   > **Note:** Use `http://` (port 27123), not `https://` (port 27124). The HTTPS endpoint uses a self-signed certificate that Claude Code rejects.
 4. Verify the connection:
    ```bash
    claude mcp list
