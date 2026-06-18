@@ -1,0 +1,39 @@
+# Obsidian workspace state (user-specific, changes constantly)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.obsidian/plugins/*/data.json
+
+# Obsidian local settings (machine-specific)
+.obsidian/app.json
+.obsidian/hotkeys.json
+
+# Obsidian trash
+.trash/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+*.swo
+
+# Secrets and credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.*
+credentials.*
+config.local.*
+
+# Hidden directories (other than .obsidian which is partly shared)
+.vscode/
+.idea/
+
+# Node / package artifacts (if any scripts are added later)
+node_modules/
+npm-debug.log*
