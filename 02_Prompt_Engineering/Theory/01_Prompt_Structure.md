@@ -17,6 +17,20 @@ Every message in a conversation has a `role` field. Understanding each role is t
 
 ---
 
+```mermaid
+sequenceDiagram
+    participant Sys as system (set once, top-level param)
+    participant U as user
+    participant C as assistant (Claude)
+
+    Sys->>C: Persona, constraints, format rules<br/>(sent with every request, not a message)
+    U->>C: "Write a function that reverses a string."
+    C->>U: "def reverse(s): ..."
+    U->>C: "Now make it recursive."
+    C->>U: "def reverse(s): ..."
+```
+
+
 ## The System Prompt
 
 The system prompt is the most powerful lever in prompt engineering. It is set via the top-level `system` parameter, **not** as a message in the `messages` array.
@@ -45,7 +59,18 @@ client.messages.create(
 
 ## Conversation Structure
 
-Messages must alternate strictly between `user` and `assistant`. You cannot have two consecutive `user` or `assistant` messages.
+Messages must alternate strictly between `user` and `
+
+```mermaid
+stateDiagram-v2
+    [*] --> user : conversation must start with "user"
+    user --> assistant : valid
+    assistant --> user : valid
+    user --> user : 400 invalid_request_error
+    assistant --> assistant : 400 invalid_request_error
+    assistant --> [*]
+```
+assistant`. You cannot have two consecutive `user` or `assistant` messages.
 
 ```json
 "messages": [
@@ -66,7 +91,18 @@ You can prefill the start of Claude's response by adding an `assistant` message 
 
 ```python
 messages=[
-    {"role": "user", "content": "What is 2 + 2?"},
+    {"role": "user", "cont
+
+```mermaid
+flowchart TD
+    C["content: string OR array of typed blocks"] --> T["type: text"]
+    C --> I["type: image<br/>(source: base64 | url)"]
+    C --> D["type: document<br/>(PDF)"]
+    C --> TU["type: tool_use<br/>(assistant requests a tool)"]
+    C --> TR["type: tool_result<br/>(user returns tool output)"]
+    C --> TH["type: thinking<br/>(extended reasoning block)"]
+```
+ent": "What is 2 + 2?"},
     {"role": "assistant", "content": "The answer is"}   # Claude continues here
 ]
 ```
