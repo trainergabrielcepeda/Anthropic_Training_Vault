@@ -37,3 +37,8 @@ config.local.*
 # Node / package artifacts (if any scripts are added later)
 node_modules/
 npm-debug.log*
+
+# Python artifacts
+__pycache__/
+*.pyc
+.venv/
