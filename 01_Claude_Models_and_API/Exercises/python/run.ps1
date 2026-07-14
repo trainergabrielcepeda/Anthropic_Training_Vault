@@ -4,6 +4,13 @@ Set-Location $PSScriptRoot
 Write-Host "=== Module 01: Claude Models & API — Python Exercises ===" -ForegroundColor Cyan
 Write-Host ""
 
+# Create and activate a virtual environment
+if (-not (Test-Path ".venv")) {
+    Write-Host "[setup] Creating virtual environment..." -ForegroundColor Yellow
+    python -m venv .venv
+}
+. .venv\Scripts\Activate.ps1
+
 # Install dependencies
 if (Test-Path "requirements.txt") {
     Write-Host "[setup] Installing dependencies..." -ForegroundColor Yellow

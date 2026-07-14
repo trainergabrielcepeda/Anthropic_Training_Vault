@@ -1,7 +1,7 @@
-# Run all Python exercises for Module 05 — Agentic Workflows
+# Run all Python exercises for Module 04 — Responsible AI
 Set-Location $PSScriptRoot
 
-Write-Host "=== Module 05: Agentic Workflows — Python Exercises ===" -ForegroundColor Cyan
+Write-Host "=== Module 04: Responsible AI — Python Exercises ===" -ForegroundColor Cyan
 Write-Host ""
 
 if (-not (Test-Path ".venv")) {
@@ -16,8 +16,12 @@ if (Test-Path "requirements.txt") {
 }
 
 Write-Host ""
-Write-Host "--- Exercise 1: Simple Agent Loop ---" -ForegroundColor Green
-python 01_simple_agent.py
+Write-Host "--- Exercise 1: Operator System Prompts ---" -ForegroundColor Green
+python 01_operator_system_prompts.py
+
+Write-Host ""
+Write-Host "--- Exercise 2: Harm Testing ---" -ForegroundColor Green
+python 02_harm_testing.py
 
 Write-Host ""
 Write-Host "=== All exercises complete ===" -ForegroundColor Cyan

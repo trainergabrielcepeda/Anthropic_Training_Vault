@@ -4,6 +4,12 @@ Set-Location $PSScriptRoot
 Write-Host "=== Module 03: Tool Use — Python Exercises ===" -ForegroundColor Cyan
 Write-Host ""
 
+if (-not (Test-Path ".venv")) {
+    Write-Host "[setup] Creating virtual environment..." -ForegroundColor Yellow
+    python -m venv .venv
+}
+. .venv\Scripts\Activate.ps1
+
 if (Test-Path "requirements.txt") {
     Write-Host "[setup] Installing dependencies..." -ForegroundColor Yellow
     pip install -q -r requirements.txt

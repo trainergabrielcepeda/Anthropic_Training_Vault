@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Run all Python exercises for Module 02 — Prompt Engineering
+# Run all Python exercises for Module 04 — Responsible AI
 set -euo pipefail
 cd "$(dirname "$0")"
 
-echo "=== Module 02: Prompt Engineering — Python Exercises ==="
+echo "=== Module 04: Responsible AI — Python Exercises ==="
 echo ""
 
 if [ ! -d .venv ]; then
@@ -18,16 +18,12 @@ if [ -f requirements.txt ]; then
 fi
 
 echo ""
-echo "--- Exercise 1: System Prompts ---"
-python 01_system_prompts.py
+echo "--- Exercise 1: Operator System Prompts ---"
+python 01_operator_system_prompts.py
 
 echo ""
-echo "--- Exercise 2: Few-Shot Prompting ---"
-python 02_few_shot.py
-
-echo ""
-echo "--- Exercise 3: Chain-of-Thought Prompting ---"
-python 03_chain_of_thought.py
+echo "--- Exercise 2: Harm Testing ---"
+python 02_harm_testing.py
 
 echo ""
 echo "=== All exercises complete ==="
