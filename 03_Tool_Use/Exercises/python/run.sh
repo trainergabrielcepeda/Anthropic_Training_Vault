@@ -6,6 +6,12 @@ cd "$(dirname "$0")"
 echo "=== Module 03: Tool Use — Python Exercises ==="
 echo ""
 
+if [ ! -d .venv ]; then
+  echo "[setup] Creating virtual environment..."
+  python -m venv .venv
+fi
+source .venv/bin/activate
+
 if [ -f requirements.txt ]; then
   echo "[setup] Installing dependencies..."
   pip install -q -r requirements.txt

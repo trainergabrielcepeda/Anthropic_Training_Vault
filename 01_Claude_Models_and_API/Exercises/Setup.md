@@ -14,6 +14,8 @@ topic: "01 - Claude Models & API"
 
 ```bash
 cd 01_Claude_Models_and_API/Exercises/python
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python 01_basic_messages.py
 python 02_streaming.py

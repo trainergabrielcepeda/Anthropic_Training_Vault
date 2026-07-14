@@ -6,6 +6,13 @@ cd "$(dirname "$0")"
 echo "=== Module 01: Claude Models & API — Python Exercises ==="
 echo ""
 
+# Create and activate a virtual environment
+if [ ! -d .venv ]; then
+  echo "[setup] Creating virtual environment..."
+  python -m venv .venv
+fi
+source .venv/bin/activate
+
 # Install dependencies
 if [ -f requirements.txt ]; then
   echo "[setup] Installing dependencies..."

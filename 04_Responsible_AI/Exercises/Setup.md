@@ -14,6 +14,8 @@ Completed [[../../00_Setup/Getting_Started|Getting Started]] and `ANTHROPIC_API_
 ```bash
 # Python
 cd 04_Responsible_AI/Exercises/python
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python 01_operator_system_prompts.py
 python 02_harm_testing.py

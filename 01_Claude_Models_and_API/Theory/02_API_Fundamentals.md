@@ -118,6 +118,24 @@ response = client.messages.create(model=..., messages=messages, max_tokens=256)
 
 ---
 
+```mermaid
+sequenceDiagram
+    participant App as Your App (stores history)
+    participant API as Anthropic API
+
+    Note over App: messages = []
+    App->>App: messages.append(user: Hello)
+    App->>API: POST /v1/messages (messages=[user])
+    API-->>App: assistant: Hi there!
+    App->>App: messages.append(assistant reply)
+
+    Note over App: Turn 2 - full history resent, API is stateless
+    App->>App: messages.append(user: What did I just say?)
+    App->>API: POST /v1/messages (messages=[user, assistant, user])
+    API-->>App: assistant: You said Hello
+```
+
+
 ## Authentication
 
 Every request requires the header:
@@ -130,6 +148,22 @@ anthropic-version: 2023-06-01
 The SDK sets both automatically when you instantiate the client.
 
 ---
+
+```mermaid
+sequenceDiagram
+    participant Dev as Your App
+    participant API as Anthropic API
+
+    Dev->>API: POST /v1/messages<br/>Headers: x-api-key, anthropic-version
+    alt Valid key with model access
+        API-->>Dev: 200 OK + message response
+    else Missing/invalid key
+        API-->>Dev: 401 authentication_error
+    else Key lacks access to requested model
+        API-->>Dev: 403 permission_error
+    end
+```
+
 
 ## Error Codes
 

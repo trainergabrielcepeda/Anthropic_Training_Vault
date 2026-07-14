@@ -9,6 +9,20 @@ Reusable prompt templates for common tasks. Each pattern includes a template, wh
 
 ---
 
+```mermaid
+flowchart TD
+    A[What's the task?] --> B{Goal}
+    B -->|Assign input to one of N categories| C[Classification Pattern]
+    B -->|Pull structured fields from text| D[Extraction Pattern]
+    B -->|Condense long content| E[Summarization Pattern]
+    B -->|Change format / style / language| F[Transformation Pattern]
+    B -->|Answer using a given document| G[Question Answering<br/>with Grounding]
+    C --> C1["prefill to skip preamble"]
+    D --> D1["prefill with '{' + strict schema"]
+    G --> G1["'do not use prior knowledge'<br/>reduces hallucination"]
+```
+
+
 ## Classification Pattern
 
 **When to use:** Assign input to one of N predefined categories.

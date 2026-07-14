@@ -47,6 +47,39 @@ messages.append({"role": "user", "content": tool_results})
 
 ---
 
+```mermaid
+sequenceDiagram
+    participant App as Your App
+    participant Claude as Claude API
+
+    App->>Claude: messages=[user: "Weather in Tokyo and Paris?"]
+    Claude-->>App: stop_reason: "tool_use"<br/>content: [tool_use#1 get_weather(Tokyo), tool_use#2 get_weather(Paris)]
+
+    par Execute concurrently
+        App->>App: get_weather("Tokyo")
+    and
+        App->>App: get_weather("Paris")
+    end
+
+    App->>Claude: messages += [user: [tool_result#1, tool_result#2]]
+    Claude-->>App: stop_reason: "end_tur
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant Claude
+
+    App->>Claude: "Restaurants near Eiffel Tower with outdoor seating?"
+    Claude-->>App: tool_use: get_location("Eiffel Tower")
+    App->>Claude: tool_result: {lat: 48.858, lon: 2.294}
+    Claude-->>App: tool_use: search_restaurants(lat, lon, features=["outdoor"])
+    App->>Claude: tool_result: [list of restaurants]
+    Claude-->>App: stop_reason: "end_turn"<br/>Final answer with restaurant list
+```
+n"<br/>"Tokyo: 22C, Paris: 18C"
+```
+
+
 ## Tool Chaining
 
 Claude can call tools sequentially when the output of one is needed as input to another. This happens naturally over multiple turns.

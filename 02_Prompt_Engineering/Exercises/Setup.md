@@ -14,6 +14,8 @@ Completed [[../../00_Setup/Getting_Started|Getting Started]] and `ANTHROPIC_API_
 ```bash
 # Python
 cd 02_Prompt_Engineering/Exercises/python
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python 01_system_prompts.py
 python 02_few_shot.py

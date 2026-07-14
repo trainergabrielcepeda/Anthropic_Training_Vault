@@ -19,6 +19,25 @@ Turn 2: Append Claude's response + tool_result to messages
 
 ---
 
+```mermaid
+sequenceDiagram
+    participant App as Your App
+    participant Claude as Claude API
+    participant Tool as Tool Executor (your code)
+
+    App->>Claude: POST /v1/messages<br/>messages=[user], tools=[...]
+    Claude-->>App: stop_reason: "tool_use"<br/>content: [tool_use id="toolu_01" name="get_weather" input={city: "Tokyo"}]
+
+    App->>App: messages.append(assistant response)
+    App->>Tool: execute get_weather(city="Tokyo")
+    Tool-->>App: "Tokyo: 22C, partly cloudy"
+    App->>App: messages.append(user: [tool_result tool_use_id="toolu_01"])
+
+    App->>Claude: POST /v1/messages<br/>messages=[user, assistant, user(tool_result)]
+    Claude-->>App: stop_reason: "end_turn"<br/>content: [text: "It's 22C in Tokyo."]
+```
+
+
 ## Turn 1 — Claude Requests a Tool
 
 When Claude decides to call a tool, the response contains a `tool_use` content block:
@@ -75,7 +94,17 @@ messages.append({
             "type": "tool_result",
             "tool_use_id": "toolu_01A09q90qw90lq917835lq9",  # must match
             "content": f"Tokyo: 22°C, partly cloudy"
-        }
+      
+
+```mermaid
+flowchart LR
+    A[Tool execution] -->|Success| B["tool_result<br/>content: result"]
+    A -->|Failure| C["tool_result<br/>content: error message<br/>is_error: true"]
+    B --> D[Send back to Claude]
+    C --> D
+    D --> E[Claude acknowledges error & continues]
+```
+  }
     ]
 })
 

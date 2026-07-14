@@ -1,6 +1,6 @@
 [
   "terminal",
-  "obsidian-local-rest-api",
   "obsidian-git",
-  "js-engine"
+  "js-engine",
+  "vault-as-mcp"
 ]

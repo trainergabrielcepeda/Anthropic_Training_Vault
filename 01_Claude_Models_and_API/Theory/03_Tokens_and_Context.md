@@ -37,6 +37,16 @@ All current Claude models support a **200,000 token** context window (~150,000 w
 
 ---
 
+```mermaid
+flowchart LR
+    subgraph CW["Context window - 200,000 tokens total"]
+        direction LR
+        SYS["system prompt"] --> HIST["prior messages"] --> USER["current user message"] --> OUT["Claude's output"]
+    end
+    style OUT fill:#f96,stroke:#333
+```
+
+
 ## Counting Tokens Before Sending
 
 Use the token counting endpoint to estimate cost and check you are within limits:
@@ -81,7 +91,22 @@ When inputs approach the context window:
 
 1. **Summarize** earlier conversation turns and replace them with a summary block.
 2. **Chunk** large documents and process them in parallel with separate requests.
-3. **Retrieve** only relevant sections via RAG rather than sending the full document (covered in [[../../06_Production_and_Evaluation/_Index|Production & Evaluation]]).
+3. **Retrieve** only relevant sections via RAG rather than sending the full document
+
+```mermaid
+flowchart TD
+    A[Input approaching context limit] --> B{What's too big?}
+    B -->|Long conversation history| C[Summarize earlier turns]
+    B -->|Single large document| D{Need the whole document?}
+    D -->|No, only specific info| E[Retrieve relevant sections via RAG]
+    D -->|Yes, process all of it| F[Chunk document,<br/>process in parallel requests]
+    C --> G[Replace old turns with a summary block]
+    G --> H[Continue conversation]
+    E --> H
+    F --> H
+    H --> I[Use prompt caching for repeated prefixes]
+```
+ (covered in [[../../06_Production_and_Evaluation/_Index|Production & Evaluation]]).
 4. **Use prompt caching** to avoid re-tokenizing repeated prefixes across requests (see [[../../06_Production_and_Evaluation/Theory/01_Caching_and_Batching|Caching & Batching]]).
 
 ---

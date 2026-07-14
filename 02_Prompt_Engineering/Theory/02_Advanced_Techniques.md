@@ -5,6 +5,20 @@ topic: "02 - Prompt Engineering"
 
 # Advanced Techniques
 
+```mermaid
+flowchart TD
+    A[Zero-shot prompt not working well?] --> B{What's the problem?}
+    B -->|Inconsistent format or tone| C[Few-Shot Prompting]
+    B -->|Wrong answers on multi-step / math / logic| D[Chain-of-Thought]
+    B -->|Complex instructions get ignored or mixed up| E[XML Structuring]
+    B -->|Output format is wrong| F[Output Formatting +<br/>Assistant Prefilling]
+    C --> G["3-7 examples,<br/>most representative example last"]
+    D --> H["'Think step by step'<br/>or native thinking parameter"]
+    E --> I["Wrap instructions / data / examples<br/>in XML tags"]
+    F --> J["Prefill start of response,<br/>e.g. '{' for JSON"]
+```
+
+
 ## Few-Shot Prompting
 
 Provide examples of the input/output pattern you want. Claude generalizes from them.
