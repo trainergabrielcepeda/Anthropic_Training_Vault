@@ -198,6 +198,61 @@
       ],
       "correct": 0,
       "explanation": "fork_session exists specifically for exploring divergent approaches from a shared baseline — each fork is independent going forward, but both start from the same already-completed analysis instead of redoing it. Resuming the same name twice (B) doesn't create independent branches, and re-running the analysis twice from nothing (D) wastes the work that was already done once."
+    },
+    {
+      "question": "An agent's response is cut off mid tool_use JSON block, and the API returns stop_reason: \"max_tokens\". The harness's loop only branches on \"tool_use\" vs \"end_turn\", so it silently treats this response as a normal turn and appends the truncated content. What is the most effective fix?",
+      "options": [
+        "Explicitly handle stop_reason == \"max_tokens\" as its own case — it means the response was cut off, not completed; retry with a higher max_tokens (or stream) rather than treating it like a normal tool_use or end_turn turn.",
+        "Ignore it, since truncated tool_use blocks still parse as valid JSON most of the time.",
+        "Treat max_tokens the same as end_turn, since the model still produced some output.",
+        "Lower max_tokens further so the model produces shorter responses that are less likely to need tool calls."
+      ],
+      "correct": 0,
+      "explanation": "max_tokens is a distinct, structured stop_reason indicating truncation, not completion — a control-flow branch that only checks tool_use vs end_turn silently mishandles it. The fix is explicit handling (a higher token budget or streaming), not conflating it with either of the other two states or shrinking the budget further, which doesn't address truncation risk."
+    },
+    {
+      "question": "A research agent uses a server-side web-search tool. Partway through, the response comes back with stop_reason: \"pause_turn\" — the tool hit its own internal iteration limit before the model was finished using it. The harness terminates the loop, treating this the same as end_turn. What breaks, and what's the correct handling?",
+      "options": [
+        "pause_turn means the model's work is not actually done — the loop should resume by re-sending the same conversation history unchanged, not terminate as if the task were complete.",
+        "Nothing breaks; pause_turn and end_turn both indicate the model has nothing more to add.",
+        "The fix is to append a synthetic tool_result telling the model to continue.",
+        "The fix is to restart the entire conversation from the first user message."
+      ],
+      "correct": 0,
+      "explanation": "pause_turn signals that a server-side tool hit its own internal limit mid-task, not that the model has finished — the correct response is to resume by re-sending the same history, letting the model pick up where it left off. Treating it as completion (B) ends the task prematurely; inventing a synthetic tool_result (C) or restarting from scratch (D) aren't how this stop_reason is meant to be handled."
+    },
+    {
+      "question": "A team needs to process a fixed, always-identical sequence: fetch a document, run OCR, validate against a schema, write to a database — every input follows exactly the same four steps in the same order, with no branching based on content. Which architecture fits best, and why?",
+      "options": [
+        "A pre-configured deterministic pipeline (a workflow), not a model-driven agentic loop — the steps and their order are already fully known in advance, so there's no decision-making for the model to actually contribute at each step.",
+        "A full agentic loop with all four capabilities exposed as tools, letting Claude decide the order and which to call each time.",
+        "A multi-agent coordinator dispatching one specialized subagent per step.",
+        "A single very long system prompt describing all four steps, performed as one Claude call with no tools at all."
+      ],
+      "correct": 0,
+      "explanation": "Agentic loops earn their complexity on open-ended tasks where the model actually needs to decide what to do next. When the sequence, order, and branching are already fully known and never vary, a deterministic pipeline is the better fit — a model-driven loop (B) adds cost and nondeterminism with nothing to actually decide, and a multi-agent coordinator (C) is unnecessary infrastructure for a fixed, non-branching sequence."
+    },
+    {
+      "question": "A team wants any Bash command containing `rm -rf` to be blocked before it ever executes, regardless of what the model's reasoning concluded was safe. Which Agent SDK mechanism enforces this, and at what point?",
+      "options": [
+        "A PreToolUse hook, which inspects the pending tool call and can block or modify it before it executes.",
+        "A PostToolUse hook, which inspects the result after the command has already run.",
+        "A system-prompt rule instructing the model never to run rm -rf.",
+        "A lower temperature setting so the model is less likely to generate destructive commands."
+      ],
+      "correct": 0,
+      "explanation": "PreToolUse intercepts a call before execution — the only point at which blocking is actually possible. PostToolUse (B) only sees the result after the command has already run, so it's too late to prevent damage. A prompt rule (C) or a temperature change (D) are both probabilistic nudges, not the deterministic guarantee this requirement calls for."
+    },
+    {
+      "question": "An agent's harness defines success as \"the loop completed its configured 15 iterations without crashing,\" and treats hitting iteration 15 as a normal successful finish rather than investigating why the model never reached stop_reason: \"end_turn\". What is wrong with this design?",
+      "options": [
+        "Iteration caps are a secondary safety net for runaway loops, not a definition of task success — hitting the cap should be logged and escalated as an anomaly, since it means the task never actually reached its natural completion signal.",
+        "Nothing is wrong; 15 iterations is a reasonable default for most agent tasks.",
+        "The fix is to raise the cap to 30 iterations so the loop has more room to reach end_turn.",
+        "The fix is to remove the cap entirely so the loop always runs until end_turn, no matter how long that takes."
+      ],
+      "correct": 0,
+      "explanation": "Treating an iteration cap as the definition of completion conflates two different concerns: \"the task is done\" (end_turn) and \"something is stuck\" (a circuit breaker). The cap should be a logged, escalated anomaly, not silent success. Raising the cap (C) or removing it (D) both miss the actual problem — the harness is conflating running out of budget with being finished, regardless of what the cap's value is."
     }
   ]
 }

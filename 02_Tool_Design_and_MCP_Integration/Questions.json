@@ -176,6 +176,61 @@
       ],
       "correct": 3,
       "explanation": "Incremental codebase understanding starts with Grep for entry points rather than reading everything upfront. Because the function is re-exported under another name by a wrapper module, a single Grep for the original name would miss those call sites — the reliable approach is to first find all exported names, then Grep each one across the codebase."
+    },
+    {
+      "question": "A remote MCP server requires user authorization to access a third-party calendar on the user's behalf. A developer considers embedding a long-lived personal access token directly in the tool's description field so Claude can \"see\" it's authorized. What is the correct approach instead?",
+      "options": [
+        "Use the MCP server's supported OAuth authorization flow so the user grants scoped, revocable access — credentials should never be embedded in a tool description or any text the model reads.",
+        "Embed the token in the tool description as planned, since tool descriptions aren't visible to end users.",
+        "Pass the token as a plain-text argument the model includes in every tool call.",
+        "Store the token in CLAUDE.md so it loads automatically every session."
+      ],
+      "correct": 0,
+      "explanation": "OAuth is the correct mechanism for remote MCP servers needing user-delegated access — scoped and revocable without the credential ever passing through model-visible text. Embedding a token in a tool description (B), an argument the model handles (C), or CLAUDE.md (D) all risk exposure through model output, logs, or context leakage — the same class of mistake as hardcoding a secret into a committed config file."
+    },
+    {
+      "question": "A team needs Slack integration for their agent — reading channel messages and posting replies. A well-maintained, actively-updated community MCP server for Slack already exists and covers their exact needs. An engineer proposes building a custom in-house Slack MCP server instead, to have \"full control.\" What's the most effective guidance?",
+      "options": [
+        "Use the existing community MCP server — custom server development should be reserved for genuinely team-specific workflows a community server doesn't already cover; building one here is unnecessary maintenance burden with no compensating benefit.",
+        "Build the custom server, since in-house tools are always more reliable than community-maintained ones.",
+        "Use the community server for reads only, and build a custom server just for posting replies.",
+        "Avoid both, and have Claude interact with Slack only via its web UI through browser automation."
+      ],
+      "correct": 0,
+      "explanation": "For standard, widely-used integrations already covered by a maintained community server, building a custom one is unnecessary maintenance burden with no compensating benefit. Splitting the same integration across a community server and a custom one (C) adds complexity for no reason, and browser automation (D) is a much more fragile substitute for a purpose-built MCP server that already exists."
+    },
+    {
+      "question": "On a given turn, you want Claude to produce a plain natural-language summary and want to guarantee it does NOT call any tool, even though several tools remain technically available in the request. Which tool_choice value is correct?",
+      "options": [
+        "{\"type\": \"none\"}",
+        "{\"type\": \"auto\"}",
+        "{\"type\": \"any\"}",
+        "Set max_tokens very low so there isn't enough room for a tool_use block to form."
+      ],
+      "correct": 0,
+      "explanation": "\"none\" disables tool calling for that turn while still allowing a plain text response — exactly what's needed here. \"auto\" (B) still permits a tool call if the model decides to make one, \"any\" (C) forces one, and artificially constraining max_tokens (D) is an unreliable hack that could just as easily truncate the text response instead of preventing a tool call."
+    },
+    {
+      "question": "Two tools, get_data and fetch_data, do genuinely different things (one queries a live inventory system, the other reads a cached daily snapshot) but their near-identical names and generic descriptions cause frequent misrouting. What is the most effective fix?",
+      "options": [
+        "Rename the tools to reflect their actual behavior (e.g., query_live_inventory and read_cached_snapshot) and rewrite their descriptions around that distinction.",
+        "Keep the names as-is, but add a routing classifier upstream that inspects the request before it reaches Claude.",
+        "Merge the two tools into one, since a single tool eliminates any naming ambiguity.",
+        "Add a disclaimer in the system prompt listing both tool names and asking Claude to \"choose carefully.\""
+      ],
+      "correct": 0,
+      "explanation": "Renaming both tools around their actual, distinct behavior plus rewriting their descriptions is usually enough to fix this kind of misrouting with no architecture change required. Merging (C) loses the real distinction between live and cached data that the caller needs to choose correctly; a routing classifier (B) is disproportionate infrastructure for what a rename fixes directly; a vague prompt caution (D) doesn't give the model any new information to act on."
+    },
+    {
+      "question": "An agent repeatedly calls a describe_table tool once per table, just to learn what columns exist before it can write a correct query — for a database with 60 tables, this means dozens of exploratory calls before any real work happens. What MCP feature would eliminate this overhead?",
+      "options": [
+        "Expose the database schema as an MCP resource the agent can read directly, rather than reconstructing it through repeated describe_table calls.",
+        "Increase describe_table's page size so more columns return per call.",
+        "Give the agent a fuzzy-matching search_tables tool instead.",
+        "Cache each describe_table response client-side after the first call for that table."
+      ],
+      "correct": 0,
+      "explanation": "MCP resources exist precisely to expose content catalogs — like a full database schema — so an agent doesn't have to reconstruct that structure through many exploratory tool calls. Client-side caching (D) still requires paying the exploratory cost the first time for every table; a fuzzy search tool (C) or bigger page size (B) don't eliminate the fundamental round-trip pattern."
     }
   ]
 }

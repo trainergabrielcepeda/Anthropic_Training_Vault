@@ -22,6 +22,7 @@ Use this vault as your single study hub. Each domain folder contains theory note
 | [[00_Exam_Guide/Exam_Scenarios\|The 6 Official Scenarios]] | The fixed scenario bank (4 of 6 appear on any given exam) that every question is anchored to |
 | [[00_Exam_Guide/Official_Sample_Questions\|Official Sample Questions]] | 12 real, published items with explanations — the clearest signal of the exam's actual reasoning style |
 | [[00_Exam_Guide/Out_of_Scope_Topics\|In-Scope vs. Out-of-Scope]] | Stop studying the wrong things |
+| [[00_Exam_Guide/Results_Tracker\|Results Tracker]] | Your practice-exam history, scored per domain |
 
 ---
 

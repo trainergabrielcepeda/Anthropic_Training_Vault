@@ -198,6 +198,61 @@
       ],
       "correct": 0,
       "explanation": "A session that just wrote the code carries the same assumptions into reviewing it, making it prone to confirming its own reasoning rather than challenging it — an independent review instance, seeded only with the diff, is structurally better positioned to catch what the generating session missed. Re-running with a different output flag (B) doesn't address the underlying self-review weakness, calling it equally reliable (C) contradicts the observed miss, and repeating the same biased reviewer three times (D) doesn't introduce genuine independence."
+    },
+    {
+      "question": "A team wants to package a multi-step dependency-audit procedure that bundles a reference checklist file, a couple of helper scripts, and frontmatter controlling which tools it may use and whether it runs in an isolated context. A plain slash command template can't hold this — scripts, reference material, and per-invocation tool restrictions. What should this be built as instead?",
+      "options": [
+        "A skill (`.claude/skills/<name>/SKILL.md`) — skills bundle instructions, scripts, and reference material with richer frontmatter (`context`, `allowed-tools`), unlike a slash command's simple prompt template.",
+        "A longer slash command with the scripts pasted inline as markdown code blocks.",
+        "A project-level CLAUDE.md section describing the procedure in prose.",
+        "A `.claude/rules/` file with a broad glob pattern matching every file in the repo."
+      ],
+      "correct": 0,
+      "explanation": "Skills are exactly for packaged capabilities that need bundled scripts, reference material, and per-invocation frontmatter controls like context isolation and tool restriction — a slash command is a simple prompt template without that structure. A prose CLAUDE.md section (C) isn't invoked on demand the way a skill is, and a broad rules file (D) is for always-applicable conventions, not an on-demand bundled procedure."
+    },
+    {
+      "question": "A project ships `.claude/skills/code-audit/SKILL.md` with a checklist the whole team uses. One developer wants to tweak the checklist for their own workflow without changing what teammates get when they invoke the shared skill. What should they do?",
+      "options": [
+        "Create `~/.claude/skills/code-audit/SKILL.md` under the same name — it overrides the skill only in their own sessions and never touches the shared, committed project version.",
+        "Directly edit the project's `.claude/skills/code-audit/SKILL.md` and simply avoid committing the change.",
+        "Rename their personal copy to `code-audit-v2` so it's a completely separate skill from the team's.",
+        "Ask every teammate to individually opt out of the shared skill in their own settings."
+      ],
+      "correct": 0,
+      "explanation": "A user-level skill under the same name overrides the project skill only in that developer's own sessions, leaving the shared, committed version untouched for everyone else. Editing the project file directly (B) risks an accidental commit or a working tree that silently diverges from what's checked in; renaming it (C) works but abandons the familiar `/code-audit` invocation for no benefit; asking teammates to opt out (D) solves the wrong problem entirely."
+    },
+    {
+      "question": "A CI pipeline runs `claude -p` to generate new unit tests for a module that already has substantial test coverage. Generated tests keep duplicating scenarios that existing test files already cover. What is the most effective fix?",
+      "options": [
+        "Provide the existing test files as context in the prompt/session, so Claude extends coverage instead of regenerating scenarios that already exist.",
+        "Lower the test-generation prompt's temperature so results are more consistent between runs.",
+        "Run the test-generation step twice and keep only tests that appear in both runs.",
+        "Switch to a larger model with a bigger context window so it can silently avoid duplicates on its own."
+      ],
+      "correct": 0,
+      "explanation": "Giving Claude the existing test files as context is what lets it extend coverage rather than regenerate scenarios it can't otherwise know already exist. Lower temperature (B) doesn't supply the missing information about what's already covered; running it twice (C) doesn't address the root cause either; and a bigger context window alone (D) doesn't guarantee the existing tests are actually included as context."
+    },
+    {
+      "question": "An engineer is migrating a deprecated auth library across 40 files, several of which turn out to need different replacement logic depending on how they use the old library. After exploring in plan mode and settling on an approach, what should happen next?",
+      "options": [
+        "Drop to direct execution to implement the now-settled plan — plan mode isn't an all-or-nothing mode for the whole session, it's for the investigation phase where design risk exists.",
+        "Stay in plan mode for the entire remaining session, including the file-by-file implementation, since the task started out complex.",
+        "Restart in a completely new session for the implementation phase, discarding the plan mode findings.",
+        "Ask the user to manually implement the plan themselves, since plan mode's job ends once a plan exists."
+      ],
+      "correct": 0,
+      "explanation": "A common, effective pattern is using plan mode for the investigation phase, then dropping to direct execution once the plan is settled and approved — plan mode is a phase for the parts of a task carrying real design risk, not a mode for the whole session regardless of what's left to do. Staying in plan mode throughout (B) adds unnecessary friction to implementation, and discarding the findings (C) or handing the plan to the user (D) both waste the investigation that was just done."
+    },
+    {
+      "question": "A skill for filing a bug report needs the user to supply a ticket ID as an argument, and the team wants that expected argument to be shown rather than guessed at before the skill runs. Which frontmatter field addresses this?",
+      "options": [
+        "`argument-hint`, which documents the expected argument (e.g., `[ticket-id]`) so it's shown rather than guessed at.",
+        "`context: fork`, since forking isolates the skill's execution context.",
+        "`allowed-tools`, since it restricts what actions the skill may take.",
+        "`description`, since a sufficiently detailed description implies what arguments are needed."
+      ],
+      "correct": 0,
+      "explanation": "`argument-hint` exists specifically to document the expected argument shape for a skill or command. `context: fork` (B) controls context isolation, not argument documentation; `allowed-tools` (C) restricts tool access, not arguments; and relying on `description` (D) to imply argument structure is indirect compared to a field built for exactly this purpose."
     }
   ]
 }

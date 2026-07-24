@@ -198,6 +198,61 @@
       ],
       "correct": 0,
       "explanation": "Without a date attached to each claim, a synthesis step has no way to distinguish a genuine contradiction from two accurate snapshots at different points in time. Requiring publication/collection dates in structured subagent output resolves this at the source rather than requiring guesswork (D) or lossy workarounds (C) downstream."
+    },
+    {
+      "question": "An agent's system prompt (a long, static tool-definition block and style guide, ~6,000 tokens) is resent unchanged on every single request in a long support session, while only the conversation turns actually change. Cost and latency are both higher than they should be for such a static block. What feature addresses this directly?",
+      "options": [
+        "Prompt caching — marking the static system-prompt/tool-definition block with a cache breakpoint so it's reused across requests instead of being reprocessed from scratch every turn.",
+        "Move the tool definitions out of the request into a separately hosted MCP resource, bypassing the tools array entirely.",
+        "Summarize the system prompt shorter every 10 turns to reduce its token count.",
+        "Switch to a smaller model, since smaller models process static content faster."
+      ],
+      "correct": 0,
+      "explanation": "Prompt caching lets repeated static content — a long system prompt or tool-definition block — be reused across requests instead of reprocessed from scratch every turn, cutting cost and latency for exactly this pattern. Moving tool definitions to an MCP resource (B) doesn't apply to the tools array itself, summarizing static content (C) is lossy for something that should simply be reused verbatim, and a smaller model (D) doesn't address the repeated reprocessing at all."
+    },
+    {
+      "question": "A support agent uses a RAG pipeline to retrieve policy passages before answering. For a niche question, the retrieval step returns three passages that are only tangentially related to what was asked. The agent nonetheless produces a confident, specific-sounding policy answer. What is the most effective fix?",
+      "options": [
+        "Instruct the agent to explicitly assess whether retrieved passages actually support the question, and answer \"I don't have information on this\" when they don't, rather than treating any retrieved text as sufficient grounding for a confident answer.",
+        "Retrieve more passages per query so there's a higher chance one is actually relevant.",
+        "Always answer using the single top-ranked passage, regardless of how well it matches the question.",
+        "Remove the retrieval step for niche questions and let the model answer from general training knowledge instead."
+      ],
+      "correct": 0,
+      "explanation": "Grounding failures in RAG happen when the model treats any retrieved text as sufficient by default; the fix is making relevance assessment an explicit step with a documented fallback for when nothing actually supports the question. Retrieving more passages (B) doesn't add a relevance check, always trusting the top result (C) doesn't address relevance either, and dropping retrieval for niche cases (D) removes the one source of grounding that's actually appropriate for policy questions."
+    },
+    {
+      "question": "A long agent session is approaching its context limit. The harness must decide what to drop first: (1) full raw tool-call payloads from 10+ turns ago, (2) the persistent case-facts block, or (3) the original user request. What is the correct priority for what gets trimmed first?",
+      "options": [
+        "Trim the old raw tool-call payloads first — they're the least likely to still be needed verbatim, while the case-facts block and the original request are exactly the small, high-value information that should be preserved as long as possible.",
+        "Trim the persistent case-facts block first, since summarized narrative context is more valuable than a handful of structured facts.",
+        "Trim the original user request first, since by this point in the conversation its content is already implied by later turns.",
+        "Trim all three equally, in the order they appear, regardless of type."
+      ],
+      "correct": 0,
+      "explanation": "Raw tool payloads are bulky and low residual value once their relevant fields have already been extracted, while case facts and the original request are small and disproportionately important to keep intact. Reversing that priority (B, C) risks losing exactly the information a trimming pass should protect, and trimming everything equally (D) ignores that these are not equally valuable to keep."
+    },
+    {
+      "question": "An extraction pipeline attaches a per-field confidence score to every extracted value. The team wants to route only the individual low-confidence fields to human review, rather than sending an entire document to review just because one field out of twenty was uncertain. What does this achieve that document-level routing wouldn't?",
+      "options": [
+        "It concentrates reviewer attention on the specific uncertain values instead of the whole document, reducing review volume without leaving any genuinely low-confidence field unchecked.",
+        "It eliminates the need for any stratified sampling of high-confidence outputs, since low-confidence fields are already fully covered.",
+        "It guarantees 100% extraction accuracy once deployed, since every uncertain value gets reviewed.",
+        "It removes the need to validate accuracy separately by document type, since field-level review supersedes document-level accuracy checks."
+      ],
+      "correct": 0,
+      "explanation": "Field-level routing concentrates reviewer time on actually-uncertain values instead of re-checking an entire document over one flagged field. It doesn't replace stratified sampling (B), which catches confidently-wrong errors that were never flagged as low-confidence in the first place; it doesn't guarantee perfect accuracy (C), since confidently-wrong errors can still slip through; and it doesn't remove the need for segment-level accuracy validation (D), since that measures ongoing drift rather than reviewing individual low-confidence values."
+    },
+    {
+      "question": "A final research report is assembled from 4 subagents; one subagent's data source was unreachable for the entire session, leaving one sub-topic under-supported by only a single source while the other three sub-topics have 5+ corroborating sources each. The report presents all sections with uniform confident language. What should change in the synthesis step?",
+      "options": [
+        "Explicitly annotate coverage per topic area — noting which findings are well-supported by multiple sources and which have gaps due to source unavailability — rather than presenting a uniformly confident report that quietly hides the difference.",
+        "Omit the under-supported sub-topic from the report entirely, since one source isn't enough to justify inclusion.",
+        "Present all sections with identical confidence language, since the reader shouldn't need to know which subagent had technical difficulties.",
+        "Re-run the entire multi-agent pipeline from scratch until every sub-topic reaches 5+ sources before producing any report."
+      ],
+      "correct": 0,
+      "explanation": "Coverage annotations let a synthesis step tell readers which findings are well-supported and which have gaps due to source unavailability, instead of presenting everything with the same confident tone. Omitting the thin section (B) loses real, if limited, information; uniform confidence language (C) is exactly the anti-pattern being fixed; and restarting until an arbitrary source count is hit (D) is disproportionate and may not even be achievable for a genuinely scarce topic."
     }
   ]
 }

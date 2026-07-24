@@ -198,6 +198,61 @@
       ],
       "correct": 0,
       "explanation": "The root cause is attention dilution across many files reviewed at once, not context-window size — splitting into focused per-file passes plus a dedicated integration pass fixes the actual problem. A bigger context window (B) misdiagnoses the issue as a capacity problem. Majority-voting across repeated passes (C) would suppress real but intermittently-caught bugs. Forcing smaller PRs (D) shifts the burden onto developers instead of fixing the review architecture."
+    },
+    {
+      "question": "You want Claude's response to always begin directly with the analysis, never a preamble like \"Sure, here's my analysis:\" or \"I'd be happy to help.\" The output is free-form prose, not a schema-constrained structure where tool_use would apply. What is the most direct fix?",
+      "options": [
+        "Prefill the assistant turn with the start of the expected response (e.g., an opening phrase or heading), so generation continues directly from that point instead of producing a preamble.",
+        "Switch to tool_use with a JSON schema, even though the output is meant to be free-form prose.",
+        "Add a system-prompt instruction saying \"do not use a preamble\" and hope it's followed consistently every time.",
+        "Increase max_tokens so there's more room for the model to eventually get past the preamble."
+      ],
+      "correct": 0,
+      "explanation": "Assistant-turn prefilling is the correct lever for steering the literal starting point of free-form text output. tool_use (B) is for schema-constrained structured data, not prose, so it doesn't fit here. A prompt instruction alone (C) is the same probabilistic pattern the exam consistently rejects in favor of a structural fix, and more tokens (D) doesn't change where the response starts."
+    },
+    {
+      "question": "A prompt includes a long source document, a separate style guide, and specific formatting instructions all concatenated as plain paragraphs. Claude occasionally applies formatting instructions meant for the output to the source document instead, or vice versa. What change most directly reduces this confusion?",
+      "options": [
+        "Wrap each distinct part in its own XML tag (e.g., <document>...</document>, <style_guide>...</style_guide>, <instructions>...</instructions>) so the model can clearly distinguish which content is source material, reference material, or instruction.",
+        "Rewrite all three parts into a single, more detailed paragraph so nothing is separated at all.",
+        "Move the instructions to the very end of the prompt with no other change to formatting.",
+        "Shorten the source document so there is less content to get confused about."
+      ],
+      "correct": 0,
+      "explanation": "XML tags are the standard technique for structuring prompts with clearly delineated sections, letting the model reliably tell source material, reference material, and instructions apart. Merging everything into one paragraph (B) makes the confusion worse rather than better, and moving instructions (C) or trimming the document (D) without adding structural separation don't address the actual cause."
+    },
+    {
+      "question": "A prompt asks Claude to make a multi-factor recommendation (e.g., which of three vendors to select, weighing cost, latency, and compliance) and jump directly to a final answer. Recommendations are inconsistent and sometimes overlook one of the three factors entirely. What change most directly improves reasoning quality and consistency?",
+      "options": [
+        "Ask Claude to reason step by step through each factor before giving the final recommendation (or use extended thinking), rather than jumping straight to a conclusion.",
+        "Lower the temperature to 0 so the same vendor is recommended every time regardless of input.",
+        "Shorten the prompt so Claude has less information to weigh per factor.",
+        "Ask for the final answer only, with an instruction to \"be thorough,\" since asking for reasoning would just slow down the response."
+      ],
+      "correct": 0,
+      "explanation": "Encouraging explicit step-by-step reasoning through each factor before the final answer (or using extended thinking) is the documented fix for multi-factor judgment tasks that skip factors when asked to answer directly. Lowering temperature (B) doesn't add any missing reasoning steps, shortening the prompt (C) removes information the judgment depends on, and skipping reasoning while asking for \"thoroughness\" (D) is the actual cause of the problem, not a fix for it."
+    },
+    {
+      "question": "A team rewrites a code-review prompt's criteria to reduce false positives and, based on a handful of manual spot-checks that looked good, deploys it directly to production. What is missing from this process, and why does it matter?",
+      "options": [
+        "A representative evaluation set — a fixed collection of realistic cases with known-correct judgments — run against both the old and new prompt versions before deployment, so improvement (and any newly introduced regressions) can be measured systematically rather than judged from a few spot-checks.",
+        "Nothing is missing; a few manual spot-checks that look good are sufficient validation for any prompt change.",
+        "The team should have skipped criteria changes entirely and used a bigger model instead.",
+        "The team should have deployed the change to production first and used live customer complaints as the evaluation signal."
+      ],
+      "correct": 0,
+      "explanation": "An evaluation set is the standard way to systematically validate that a prompt change actually improves precision without regressing other cases, before it ever reaches production. A handful of spot-checks (B) don't cover the space of realistic cases, a bigger model (C) doesn't validate whether the new criteria work, and treating production complaints as the evaluation signal (D) means real customers absorb the cost of undetected regressions."
+    },
+    {
+      "question": "A prompt places a 20-page reference document at the very end, after all instructions, on the theory that \"instructions should come first.\" Output quality is inconsistent, and the model sometimes seems to under-use parts of the document. What ordering change, combined with tagging, most directly helps?",
+      "options": [
+        "Place long source/reference documents near the beginning of the prompt (clearly delimited, e.g. with XML tags), with instructions and the specific question after — long inputs are generally processed more reliably when they come before the instructions that reference them.",
+        "Keep the current order, since instructions must always precede any reference material regardless of length.",
+        "Remove the document entirely and rely on the model's general training knowledge instead.",
+        "Split the instructions into two halves, one before and one after the document, to reinforce them twice."
+      ],
+      "correct": 0,
+      "explanation": "Placing long reference material near the beginning of the prompt, clearly delimited, with instructions and the specific question following it, is a well-documented ordering that improves reliability over burying a long document after the instructions. Option B contradicts that guidance; removing the document (C) discards the information the task actually depends on; and splitting the instructions in two (D) adds redundancy without adding the structural clarity that actually helps."
     }
   ]
 }
