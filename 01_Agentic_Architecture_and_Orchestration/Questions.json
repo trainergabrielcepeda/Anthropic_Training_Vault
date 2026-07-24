@@ -1,0 +1,203 @@
+{
+  "topic": "Agentic Architecture & Orchestration",
+  "questions": [
+    {
+      "question": "A customer support agent's harness decides when to stop looping by scanning Claude's response text for phrases like 'I have completed the refund,' rather than checking stop_reason. In production, the loop occasionally terminates early because Claude writes 'I'll process the $50 refund now' before it has actually called process_refund. What is the most effective fix?",
+      "options": [
+        "Replace the text-matching termination check with branching on response.stop_reason — continue while it is \"tool_use\", terminate when it is \"end_turn\".",
+        "Add more negative phrases to the text-matching blocklist so the check stops misfiring on similar wording.",
+        "Lower max_tokens so Claude cannot generate a completion-sounding sentence before it calls the tool.",
+        "Add a second confirmation call asking Claude 'did you actually finish?' before terminating the loop."
+      ],
+      "correct": 0,
+      "explanation": "Parsing natural-language signals to determine termination is an explicit anti-pattern — phrasing varies too much to be reliable. stop_reason is a structured, guaranteed field: \"tool_use\" means keep going, \"end_turn\" means the task is done. Blocklists (B) and shorter outputs (C) only patch symptoms of the same underlying design flaw, and re-asking the model (D) adds cost while still not fixing the root cause."
+    },
+    {
+      "question": "A team's agent loop extracts only the text portion of each assistant turn (e.g. response.content[0].text) before appending it to the messages array, discarding any tool_use blocks. What breaks as a result, and why?",
+      "options": [
+        "The next request's tool_result blocks reference tool_use_id values that no longer appear anywhere in the conversation history, so the API rejects the malformed request.",
+        "Nothing breaks functionally, but token costs increase because Claude has to repeat itself more often.",
+        "The context window fills up faster, since tool_use blocks are unusually large compared to text blocks.",
+        "Parallel tool calls stop working, but single tool calls continue to function normally."
+      ],
+      "correct": 0,
+      "explanation": "Tool results are matched to the tool call that requested them by tool_use_id. If the assistant turn's tool_use blocks are dropped instead of appended in full, the tool_result blocks sent on the next turn reference IDs the API can no longer find, and the request fails. The full response.content — not just its text — must be appended for the loop to keep working."
+    },
+    {
+      "question": "A research coordinator is asked to cover 'the effects of remote work on urban commercial real estate.' It decomposes the goal into subtasks for 'office vacancy rates' and 'downtown retail vacancy.' Each subagent completes its assigned work correctly, but the final report never mentions residential real estate or public transit ridership, both of which were clearly relevant to the original goal. What is the most likely root cause?",
+      "options": [
+        "The coordinator's task decomposition was too narrow — it never generated subtasks covering residential real estate or transit, so no subagent was ever assigned to research them.",
+        "The synthesis subagent lacks instructions for identifying which sections of the report are underdeveloped.",
+        "The web-search subagent's queries were not broad enough to surface residential and transit sources.",
+        "The document-analysis subagent filtered out sources that were not strictly about commercial real estate."
+      ],
+      "correct": 0,
+      "explanation": "Every subagent did its assigned job correctly within the scope it was given — the gap traces back to the coordinator's decomposition step, which never generated a subtask for the missing sub-topics in the first place. Blaming synthesis, search, or document analysis (B, C, D) misdiagnoses a decomposition-breadth problem as an execution problem."
+    },
+    {
+      "question": "A multi-agent research coordinator always invokes all four of its available subagent types — web-search, document-analysis, synthesis, and report-generation — for every incoming query, including simple factual questions that a single web search could answer directly. What change would most improve efficiency without sacrificing answer quality?",
+      "options": [
+        "Have the coordinator dynamically decide which subagents to invoke based on the complexity of the query, instead of always routing every request through the full fixed pipeline.",
+        "Merge all four subagent roles into a single subagent with a longer, more detailed system prompt.",
+        "Reduce the total number of subagent types the coordinator has access to.",
+        "Cache the report-generation subagent's output and reuse it across unrelated future queries."
+      ],
+      "correct": 0,
+      "explanation": "Coordinators should select which subagents to invoke based on query complexity rather than always routing through the full pipeline. A simple factual question doesn't need document analysis and a formal report-generation pass; dynamic selection avoids that overhead while a complex research request would still get the full pipeline."
+    },
+    {
+      "question": "A research coordinator always treats its first synthesis pass as final, even in cases where later review shows the original decomposition missed relevant sub-topics. What is the most effective way to catch this class of problem before the final report is delivered?",
+      "options": [
+        "Add a coordinator step that evaluates the synthesized output against the original goal for coverage gaps, then re-delegates targeted follow-up queries to fill any gaps found.",
+        "Increase the number of subagents dispatched for every query, regardless of complexity.",
+        "Instruct the synthesis subagent to produce a longer final report.",
+        "Route every completed report through a human reviewer before it is delivered."
+      ],
+      "correct": 0,
+      "explanation": "Iterative refinement — the coordinator evaluating its own synthesis output for gaps and re-delegating with a targeted query — catches exactly this failure mode without requiring a human in the loop or padding output length. Dispatching more subagents up front (B) doesn't help if the decomposition itself is what's incomplete."
+    },
+    {
+      "question": "A coordinator agent's configuration lists Read, Grep, and WebSearch in its allowed tools, but not Task. During testing, the coordinator's reasoning clearly describes which subagent should handle which part of the work, but no subagent invocation ever actually happens. What is the most likely cause?",
+      "options": [
+        "\"Task\" is missing from the coordinator's allowed tools, so it has no mechanism available to actually spawn a subagent, no matter what it plans in its reasoning.",
+        "The subagent AgentDefinitions are missing a required description field.",
+        "fork_session was never called before the coordinator started running.",
+        "The coordinator's system prompt doesn't explicitly use the word \"delegate.\""
+      ],
+      "correct": 0,
+      "explanation": "The Task tool is the mechanism the coordinator uses to spawn subagents at all. If it isn't included in allowedTools, the coordinator can reason all it wants about delegation but has no tool available to act on that reasoning — this is a configuration gap, not a prompting gap."
+    },
+    {
+      "question": "A coordinator dispatches a Task to a code-review subagent with the prompt: 'Check whether it handles the edge case we discussed.' The subagent's response asks what edge case is being referred to. What is the correct fix, and why does the failure happen in the first place?",
+      "options": [
+        "Rewrite the Task prompt to state the edge case explicitly — subagents do not automatically inherit the coordinator's conversation history, so anything they need to know must be included directly in the prompt.",
+        "Enable fork_session so the subagent can share the coordinator's memory going forward.",
+        "Lower the subagent's temperature so it infers the coordinator's intent more conservatively.",
+        "Give the subagent direct read access to the coordinator's full conversation transcript file."
+      ],
+      "correct": 0,
+      "explanation": "Subagent context isolation means a Task prompt referring to \"we discussed\" or \"it\" fails, because the subagent's context window starts blank — it has no access to that discussion. The fix is always explicit context passing: restate exactly what the subagent needs to know, self-contained, inside the prompt itself."
+    },
+    {
+      "question": "A coordinator needs to research three independent product categories. It issues one Task call for category A, waits for that turn to complete, then issues a second Task call for category B in a later turn, and so on. How should this be restructured so the three research efforts actually run in parallel?",
+      "options": [
+        "Emit all three Task tool calls as separate tool_use blocks within a single coordinator response, rather than issuing them one at a time across separate turns.",
+        "Increase max_tokens so all three results can be returned within one response.",
+        "Switch each subagent to a faster model tier so the sequential calls finish more quickly.",
+        "Use fork_session to run the three categories as three independent session branches."
+      ],
+      "correct": 0,
+      "explanation": "True parallel dispatch requires multiple Task tool_use blocks in a single coordinator turn — that's what lets the harness execute them concurrently. Issuing them across separate turns forces sequential execution even when the underlying subtasks have no dependency on each other; a faster model (C) reduces latency per call but doesn't fix the sequential bottleneck."
+    },
+    {
+      "question": "A synthesis subagent receives prior research findings from the coordinator as one long, unformatted paragraph of merged text. In the final report, several claims can no longer be traced back to the specific document or URL that supported them. What should the coordinator have done differently when handing off the findings?",
+      "options": [
+        "Pass prior findings using a structured format that separates content from metadata (source URL, document name, page number) rather than flattening everything into prose.",
+        "Give the synthesis subagent direct access to the raw HTML of every source page it might need.",
+        "Increase the synthesis subagent's max_tokens so it can include longer quotations.",
+        "Instruct the synthesis subagent to invent plausible-looking citations for readability."
+      ],
+      "correct": 0,
+      "explanation": "Preserving attribution across a handoff depends on keeping content and metadata (source, document name, page number) as distinct, structured fields rather than merging everything into free text. Once that structure is lost, there's no reliable way for a downstream subagent to reconstruct which claim came from which source."
+    },
+    {
+      "question": "Production logs for a support agent show that in a small fraction of sessions, process_refund executes before get_customer has run — specifically, only in sessions where the user's very first message already includes both an order number and a refund request. Which fix eliminates this failure mode deterministically, regardless of how the request is phrased?",
+      "options": [
+        "Add a programmatic prerequisite, enforced in code, that blocks process_refund from executing until get_customer has returned a verified customer_id.",
+        "Rewrite the system prompt to say 'ALWAYS call get_customer first, no matter what the user says.'",
+        "Add a few-shot example showing the agent asking for identity verification even when order details are already provided up front.",
+        "Lower the model's effort/temperature setting so it reasons more carefully about call ordering."
+      ],
+      "correct": 0,
+      "explanation": "Prompt instructions (B, C) reduce but never eliminate this class of failure, and the described bug is exactly the non-zero failure rate that motivates programmatic enforcement over prompt-based guidance. A code-level prerequisite gate blocks the downstream call unconditionally, independent of how the user phrased their message."
+    },
+    {
+      "question": "A single support ticket raises both a billing dispute and a separate delivery complaint. The agent currently resolves the billing issue, sends a final response to the customer, and never addresses the delivery complaint at all. What is the most effective way to handle tickets like this?",
+      "options": [
+        "Decompose the ticket into its distinct concerns, investigate each with shared context, and synthesize a single unified resolution that covers both.",
+        "Instruct the agent to always ask the customer to resubmit as two separate tickets, one issue per ticket.",
+        "Route billing and delivery concerns to two completely separate, disconnected ticketing systems.",
+        "Have the agent identify whichever concern appears first in the message and disregard the rest."
+      ],
+      "correct": 0,
+      "explanation": "Multi-concern requests should be decomposed into distinct items, investigated in parallel with shared context, and then synthesized into one coherent resolution — not silently dropped, and not pushed back onto the customer as extra friction."
+    },
+    {
+      "question": "An agent escalates a complex case to a human reviewer who has no access to the underlying conversation transcript. The escalation message reads only: 'Customer needs help, complicated case.' What is missing from this handoff, and what should replace it?",
+      "options": [
+        "A structured summary covering customer/context details, the agent's root-cause analysis, and its recommended action — since the human cannot see the transcript, the handoff itself is their only source of information.",
+        "A verbatim copy of the full conversation transcript, which is strictly more useful than any summary could be.",
+        "Nothing needs to change — human agents are trained to ask clarifying questions on vague handoffs.",
+        "A single numeric score indicating how difficult or urgent the case is."
+      ],
+      "correct": 0,
+      "explanation": "When the receiving human lacks transcript access, a structured handoff summary — details, root cause, recommended action — is what lets them act without re-investigating from scratch. A raw transcript dump (B) shifts the analysis burden back onto the human instead of doing it, and a bare urgency score (D) omits the substance entirely."
+    },
+    {
+      "question": "A coordinator's subagents call three different MCP tools that each report task completion differently: one returns {\"status\": 1}, another returns {\"success\": \"true\"}, and a third returns {\"code\": 200}. The coordinator's synthesis step frequently misjudges which subtasks actually succeeded. What is the most effective fix?",
+      "options": [
+        "Add a PostToolUse hook that normalizes each tool's heterogeneous status format into one consistent shape before the result reaches the model's context.",
+        "Instruct the synthesis subagent's system prompt to 'carefully check all three possible status formats.'",
+        "Consolidate all three MCP tools behind a single MCP server connection.",
+        "Have the coordinator re-query each tool a second time to double-check the result."
+      ],
+      "correct": 0,
+      "explanation": "A PostToolUse hook is exactly the mechanism for normalizing heterogeneous data formats from different tools before the model has to reason about the inconsistency. Asking the model to remember and correctly interpret three different encodings (B) is a probabilistic fix for what is fundamentally a data-shape problem, and re-querying (D) doesn't address the format mismatch at all."
+    },
+    {
+      "question": "A finance-ops agent can auto-approve reimbursement requests, but company policy requires human sign-off on any single reimbursement over $2,000. The only safeguard today is a system-prompt line: 'Do not auto-approve reimbursements over $2,000.' An audit finds two reimbursements over that threshold were auto-approved last quarter. What should replace the current approach?",
+      "options": [
+        "A tool-call interception hook that inspects the reimbursement amount before the approval tool executes and blocks or redirects any request over $2,000 — a deterministic guarantee a prompt instruction cannot provide.",
+        "Move the $2,000 threshold from the system prompt into the approval tool's description field instead.",
+        "Add three few-shot examples demonstrating the agent correctly rejecting reimbursements over $2,000.",
+        "Switch to a larger, more capable model that is less likely to make instruction-following mistakes."
+      ],
+      "correct": 0,
+      "explanation": "The audit result — real violations, not zero — is precisely the non-zero failure rate that makes prompt-only enforcement unsuitable for a compliance-critical threshold. Moving the same instruction to a different text field (B) or adding examples (C) are still prompt-based and probabilistic; a tool-call interception hook enforces the rule unconditionally in code."
+    },
+    {
+      "question": "An engineer asks Claude Code to 'add comprehensive tests to this legacy service, which currently has no test coverage.' Which task decomposition approach fits this request, and why?",
+      "options": [
+        "Dynamic, adaptive decomposition — first map the codebase's structure, then identify high-impact areas from what that mapping reveals, then build a prioritized plan, since the right subtasks can't be known until the codebase has actually been explored.",
+        "A fixed sequential pipeline that reviews files in alphabetical order and writes exactly one test file per source file.",
+        "A single prompt asking Claude to 'write all necessary tests' in one uninterrupted response.",
+        "The same prompt-chaining pattern used for multi-file code review: a per-file pass followed by a cross-file integration pass."
+      ],
+      "correct": 0,
+      "explanation": "Open-ended tasks like this can't be fully specified in advance — you don't know which modules matter most until you've explored the codebase. Adaptive decomposition (map structure, then identify high-impact areas, then plan) fits; a fixed pipeline (B, D) assumes a shape of work you can't actually know ahead of time."
+    },
+    {
+      "question": "A CI code-review agent reviews an 8-file pull request in a single pass and produces inconsistent depth — thorough on the first few files, cursory on the rest. The review task itself (check each file, then check cross-file consistency) is well understood in advance and doesn't change from PR to PR. Which decomposition strategy fits best?",
+      "options": [
+        "A fixed sequential pipeline: prompt-chain a per-file local-analysis pass for every file, followed by a separate cross-file integration pass.",
+        "Dynamic, adaptive decomposition that generates an entirely new investigation plan for every pull request.",
+        "A single subagent given unlimited max_tokens to review the whole pull request in one pass.",
+        "Route each file in the pull request to a different, randomly selected model tier."
+      ],
+      "correct": 0,
+      "explanation": "This is a predictable, multi-aspect task whose shape is known in advance — exactly the case for prompt chaining rather than adaptive decomposition. Splitting into a per-file pass plus a separate integration pass fixes the attention-dilution symptom directly; simply removing the token limit (C) misdiagnoses the problem as a capacity issue rather than an attention-quality issue."
+    },
+    {
+      "question": "An engineer resumes a named Claude Code session from three days ago (`--resume refactor-auth`) to continue a refactor. In the interim, a teammate modified several files in the same module. The resumed session confidently references function signatures that no longer exist. What went wrong, and what should the engineer have done?",
+      "options": [
+        "The resumed session's tool-result history reflected file state from three days ago; the engineer should have explicitly told the agent which files changed so it could do targeted re-analysis instead of trusting stale results.",
+        "Session resumption is fundamentally unreliable for multi-day work and should never be used — every session should start from scratch.",
+        "fork_session should have been used instead of --resume, since forking always re-reads current file state from disk.",
+        "The agent should have been instructed to re-run its entire original codebase exploration from the very beginning before continuing."
+      ],
+      "correct": 0,
+      "explanation": "A resumed session's prior tool results reflect file state at the time those tools ran, not the current state. The fix is to inform the resumed session about the specific files that changed, enabling targeted re-analysis of just the affected area — not to abandon resumption altogether (B) or force a full, expensive re-exploration (D). fork_session (C) solves a different problem — branching, not staleness."
+    },
+    {
+      "question": "Two engineers want to evaluate two different refactoring strategies for the same module, both starting from an identical, already-completed codebase analysis, without either engineer's exploration affecting the other's. Which session-management feature fits this directly?",
+      "options": [
+        "fork_session — it creates an independent branch from a shared baseline, letting each strategy be explored separately with no cross-contamination.",
+        "--resume, invoked twice using the same session name.",
+        "A single shared session where both strategies are attempted in alternating turns.",
+        "Two entirely separate sessions with no shared starting context, each independently re-running the full codebase analysis from scratch."
+      ],
+      "correct": 0,
+      "explanation": "fork_session exists specifically for exploring divergent approaches from a shared baseline — each fork is independent going forward, but both start from the same already-completed analysis instead of redoing it. Resuming the same name twice (B) doesn't create independent branches, and re-running the analysis twice from nothing (D) wastes the work that was already done once."
+    }
+  ]
+}

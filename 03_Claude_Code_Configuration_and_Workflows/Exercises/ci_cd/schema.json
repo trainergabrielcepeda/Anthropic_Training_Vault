@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "pr_review_findings",
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One or two sentence overall assessment of the diff."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Path of the file this finding applies to, relative to repo root."
+          },
+          "line": {
+            "type": ["integer", "null"],
+            "description": "Line number the finding applies to, or null if it applies to the whole file."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["blocking", "suggestion", "nit"]
+          },
+          "category": {
+            "type": "string",
+            "enum": ["correctness", "security", "test-coverage", "style", "docs"]
+          },
+          "message": {
+            "type": "string",
+            "description": "Specific, actionable description of the issue. Never a generic 'consider improving this'."
+          },
+          "is_new": {
+            "type": "boolean",
+            "description": "False if this finding was already reported in a prior review pass and remains unaddressed — lets the pipeline avoid posting a duplicate PR comment."
+          }
+        },
+        "required": ["file", "severity", "category", "message", "is_new"]
+      }
+    }
+  },
+  "required": ["summary", "findings"]
+}

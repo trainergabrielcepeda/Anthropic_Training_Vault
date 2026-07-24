@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "orderflow-db": {
+      "command": "npx",
+      "args": ["-y", "@orderflow/mcp-postgres"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}",
+        "READ_ONLY": "true"
+      }
+    }
+  }
+}

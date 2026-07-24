@@ -1,0 +1,6 @@
+{
+  "name": "domain02-tool-design-mcp-exercises",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": { "@anthropic-ai/sdk": "^0.37.0" }
+}

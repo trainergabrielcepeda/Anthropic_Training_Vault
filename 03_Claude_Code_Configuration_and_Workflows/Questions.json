@@ -1,0 +1,203 @@
+{
+  "topic": "Claude Code Configuration & Workflows",
+  "questions": [
+    {
+      "question": "A developer says Claude Code always enforces their team's commit-message format on their machine, but a new hire who cloned the same repo yesterday says Claude Code never mentions it. Both are using the same project. What is the most likely cause?",
+      "options": [
+        "The convention lives in the first developer's `~/.claude/CLAUDE.md`, a user-level file that was never committed to the repo",
+        "The new hire needs to run `claude --sync-memory` after cloning",
+        "CLAUDE.md files require a manual `git submodule update` to take effect for new clones",
+        "The convention is defined in a `.claude/skills/` file that only the first developer has invoked"
+      ],
+      "correct": 0,
+      "explanation": "User-level CLAUDE.md (`~/.claude/CLAUDE.md`) applies only to that user's machine and is never shared via version control. If a convention should apply to everyone who clones the repo, it belongs in the project-level `CLAUDE.md` (or `.claude/rules/`), not a personal file. There is no `--sync-memory` command."
+    },
+    {
+      "question": "A monorepo has a root `CLAUDE.md` plus separate `packages/api/CONVENTIONS.md` and `packages/web/CONVENTIONS.md` files with package-specific standards. The team wants every session working in `packages/api` to automatically load only the API conventions, not the web conventions, while keeping the root file short. What's the appropriate mechanism?",
+      "options": [
+        "Use `@import` in the root CLAUDE.md, or place the import inside a directory-level CLAUDE.md, so each package pulls in only its own conventions file",
+        "Paste the full contents of both CONVENTIONS.md files into the root CLAUDE.md under separate headers",
+        "Rename both CONVENTIONS.md files to CLAUDE.md and rely on Claude to infer which one is relevant",
+        "Move both files into `.claude/skills/` so they load only when explicitly invoked by name"
+      ],
+      "correct": 0,
+      "explanation": "`@import` is the designed mechanism for pulling external files into CLAUDE.md selectively, keeping it modular. Pasting everything in defeats the purpose (option B) and bloats context for every session regardless of package. Renaming to CLAUDE.md doesn't scope anything by itself, and skills are for on-demand task procedures, not always-relevant package conventions."
+    },
+    {
+      "question": "A teammate reports that Claude Code isn't following a documented convention while editing `src/routes/checkout.tsx`. You suspect a path-scoped rule exists but didn't activate. What is the fastest way to confirm which memory files actually loaded for that session?",
+      "options": [
+        "Run `/memory` to list the loaded files and check whether the relevant rule's glob pattern actually matches the file being edited",
+        "Delete `.claude/rules/` and recreate it, since corrupted rule caches are the most common cause",
+        "Ask the teammate to restate the convention in the chat so Claude re-learns it for that session",
+        "Check the repository's GitHub Actions logs, since CLAUDE.md loading is logged there"
+      ],
+      "correct": 0,
+      "explanation": "`/memory` is the built-in diagnostic for exactly this situation — it shows which memory files loaded, in hierarchy order, letting you check whether a glob simply didn't match. There's no such thing as a corrupted rule cache to reset, restating the convention in chat doesn't fix the underlying scoping problem, and CLAUDE.md loading isn't a CI-logged event."
+    },
+    {
+      "question": "You're setting up a personal shortcut command for your own workflow — it summarizes your open PRs in a format only you find useful. It has no relevance to teammates and shouldn't show up when they run Claude Code. Where should it live?",
+      "options": [
+        "`~/.claude/commands/` — a user-scoped command visible only in your own sessions",
+        "`.claude/commands/` — project-scoped so it's version-controlled",
+        "The project root `CLAUDE.md`, as a documented convention",
+        "A `.claude/skills/personal/` directory committed to the repo"
+      ],
+      "correct": 0,
+      "explanation": "`~/.claude/commands/` is exactly for personal, unshared commands. Putting it in `.claude/commands/` (project-scoped) or committing anything to the repo (options C, D) would push a personal, irrelevant shortcut onto every teammate who clones the project."
+    },
+    {
+      "question": "You're building a skill that runs a large-scale dependency audit — it reads dozens of files and produces pages of intermediate grep output before reaching a conclusion. Running it in the main conversation would consume most of the remaining context. What frontmatter field addresses this, and how?",
+      "options": [
+        "`context: fork` — runs the skill in an isolated sub-agent context so only the final summary returns to the main conversation",
+        "`allowed-tools: [Grep]` — restricting tools reduces the amount of output produced",
+        "`argument-hint` — prompts the user to scope the audit to fewer files upfront",
+        "There is no frontmatter for this; the developer must manually summarize the skill's output afterward"
+      ],
+      "correct": 0,
+      "explanation": "`context: fork` is specifically designed to isolate verbose output-producing skills into a sub-agent, returning only a distilled result. Restricting `allowed-tools` controls *which* tools can run, not how much output they produce, and `argument-hint` just documents expected arguments — it doesn't change context isolation."
+    },
+    {
+      "question": "A team wants a skill that only ever proposes a migration plan as a written report — it must never be able to modify, delete, or execute anything in the repository, even if a bug in its own logic tried to. Which frontmatter field enforces this structurally, rather than just by instruction?",
+      "options": [
+        "`allowed-tools`, restricted to read/write-report tools only (e.g. `[Read, Grep, Glob, Write]` scoped to a report file), excluding `Bash` and destructive edit tools",
+        "A prose instruction in the SKILL.md body telling the skill not to modify files",
+        "`context: fork`, since isolating the skill's context also isolates its tool access",
+        "`argument-hint`, since it constrains what arguments can be passed to the skill"
+      ],
+      "correct": 0,
+      "explanation": "`allowed-tools` is the structural enforcement mechanism — a skill without `Bash` or destructive edit tools in its allow-list cannot execute or delete regardless of what its own reasoning concludes. A prose instruction is a request, not an enforcement mechanism (the exam consistently favors deterministic controls over prompt-only ones). `context: fork` isolates conversation context, not tool permissions, and `argument-hint` is unrelated to tool access."
+    },
+    {
+      "question": "A `.claude/rules/formatting.md` file with no `paths` frontmatter sits alongside a `.claude/rules/terraform.md` file with `paths: [\"infra/**/*\"]`. What is the practical difference in when each loads?",
+      "options": [
+        "`formatting.md` loads for every session regardless of what's being edited; `terraform.md` loads only when a file under `infra/` is being touched",
+        "Both load identically on every session, since `.claude/rules/` files are always loaded once present",
+        "Neither loads automatically — both require an explicit `/rules formatting` or `/rules terraform` invocation",
+        "`terraform.md` loads for every session, and `formatting.md` never loads because it's missing required frontmatter"
+      ],
+      "correct": 0,
+      "explanation": "A rule file with no `paths` frontmatter is unscoped and always loads, like an additional CLAUDE.md section. A rule file with `paths` frontmatter loads conditionally, only when the current task touches a matching file — this is exactly what keeps irrelevant context (Terraform conventions during a frontend task) out of unrelated sessions."
+    },
+    {
+      "question": "A codebase has three distinct areas — Python data pipelines, a Go backend service, and a set of Bash deployment scripts — each with different linting and error-handling conventions. Files of each type are not confined to one directory; Bash scripts in particular are scattered across `scripts/`, `deploy/`, and several per-service `bin/` directories. What is the most maintainable way to apply each area's conventions automatically?",
+      "options": [
+        "Three `.claude/rules/` files, each scoped with a `paths` glob matching that language's file extension (e.g. `**/*.sh`) rather than a specific directory",
+        "One directory-level `CLAUDE.md` per top-level folder (`scripts/CLAUDE.md`, `deploy/CLAUDE.md`, etc.), duplicated wherever Bash scripts appear",
+        "A single root CLAUDE.md with three headers, relying on Claude to infer which section applies from file extension",
+        "Three separate skills, one per language, manually invoked whenever the relevant file type is being edited"
+      ],
+      "correct": 0,
+      "explanation": "Glob-scoped rules key off file pattern, not directory, so `**/*.sh` applies consistently across `scripts/`, `deploy/`, and every service's `bin/` directory without duplication. Directory-level CLAUDE.md (B) can't cover files scattered across many directories without copy-pasting the same file repeatedly. A single file with headers (C) relies on inference rather than deterministic matching, and skills (D) require manual invocation rather than automatically applying as conventions are read."
+    },
+    {
+      "question": "You need a rule that applies to any file matching `**/*.test.tsx` anywhere in the repository. Where does this rule's scoping information belong?",
+      "options": [
+        "In the YAML frontmatter of a `.claude/rules/` file, as `paths: [\"**/*.test.tsx\"]`",
+        "In the file name itself — naming the rule file `test.tsx.md` is sufficient for Claude Code to scope it automatically",
+        "In a `scope:` key inside CLAUDE.md pointing at the rule file",
+        "Rules cannot be scoped by glob pattern; only by exact directory path"
+      ],
+      "correct": 0,
+      "explanation": "Path scoping is expressed via a `paths` array in the rule file's YAML frontmatter, supporting glob patterns like `**/*.test.tsx`. File naming has no special scoping meaning, CLAUDE.md doesn't declare rule scope on a rule file's behalf, and glob patterns (not just exact directories) are explicitly supported."
+    },
+    {
+      "question": "A request comes in: \"Add a null check before this function dereferences `order.customer.id`, since the stack trace shows a crash there.\" What's the appropriate approach?",
+      "options": [
+        "Direct execution — this is a well-scoped, single-function change with a clear, unambiguous fix",
+        "Plan mode — any bug fix should be planned before implementation to avoid rework",
+        "Delegate to the Explore subagent to survey the whole codebase for similar null-dereference risks before touching this function",
+        "Ask the user to choose between three possible null-handling strategies before proceeding"
+      ],
+      "correct": 0,
+      "explanation": "This is exactly the well-understood, narrowly-scoped case direct execution is for — one function, one clear fix, no architectural ambiguity. Plan mode is reserved for complex, multi-file, or architecturally ambiguous work; invoking it here is unnecessary overhead. Surveying the whole codebase or presenting design options is disproportionate to a single guarded null check."
+    },
+    {
+      "question": "A team wants to replace a deprecated logging library used inconsistently across ~60 files, with three call-site patterns that each need different replacement logic, and an open question of whether to do it in one pass or behind a compatibility shim. What is the most appropriate way to start?",
+      "options": [
+        "Enter plan mode to survey the call-site patterns and decide on a migration strategy before any files are changed",
+        "Start direct execution on the first file, and let the pattern for the remaining 59 emerge as you go",
+        "Direct execution with a detailed upfront prompt specifying every file to change and in what order",
+        "Skip planning and directly write a single large commit converting all 60 files at once"
+      ],
+      "correct": 0,
+      "explanation": "Multiple call-site patterns, an open strategic question (shim vs. big-bang), and 60 affected files are exactly the markers for plan mode: real architectural ambiguity that's cheaper to resolve before implementation than to discover mid-migration. Starting direct execution (B, C, D) assumes the approach is already settled when it explicitly isn't."
+    },
+    {
+      "question": "While investigating how a legacy authentication module handles session expiry, you need to read a dozen files, trace several call paths, and grep for every caller of a deprecated function — all before you can even start deciding what to change. Why use the Explore subagent for this phase instead of doing it directly in the main conversation?",
+      "options": [
+        "It isolates the verbose intermediate discovery output (file reads, grep hits) into a sub-agent, returning a summary and preserving main-conversation context for the actual decision-making and implementation",
+        "It is the only way to read more than 10 files in a single Claude Code session",
+        "It automatically writes unit tests for whatever code it discovers",
+        "It replaces the need for plan mode entirely once exploration is complete"
+      ],
+      "correct": 0,
+      "explanation": "The Explore subagent's value is context preservation — verbose discovery work generates output that would otherwise crowd out the main conversation's budget. There's no hard 10-file limit it works around, it doesn't generate tests, and it complements plan mode's design phase rather than replacing it."
+    },
+    {
+      "question": "A prose instruction — \"format dates consistently\" — has produced inconsistent results across several generated files: some use `MM/DD/YYYY`, others ISO 8601, others relative phrases like \"3 days ago\". What is the most effective next step to get consistent output?",
+      "options": [
+        "Provide 2–3 concrete input/output examples showing exactly which raw date values should map to which formatted strings",
+        "Rewrite the instruction with more adjectives emphasizing that consistency really matters this time",
+        "Switch to a larger, more capable model so it infers the intended format on its own",
+        "Add a linter step after generation that rejects any non-ISO-8601 date and asks Claude to fix it via trial and error"
+      ],
+      "correct": 0,
+      "explanation": "When prose is interpreted inconsistently, concrete input/output examples resolve the ambiguity directly — they show the exact transformation rather than describing it in words that can be read multiple ways. Emphatic rewording (B) doesn't add information. A bigger model (C) doesn't resolve an underspecified requirement. A post-hoc linter (D) is a much slower trial-and-error loop than just specifying the format upfront."
+    },
+    {
+      "question": "Before implementing a rate-limiting feature for an internal API, in a domain you have limited experience with, what's the most effective way to surface open design questions (burst allowance, per-user vs. per-IP limits, behavior on limit breach) before code gets written?",
+      "options": [
+        "Use the interview pattern — have Claude ask clarifying questions about the unresolved considerations before implementation begins",
+        "Implement the most common industry-standard rate-limiting approach immediately and adjust later if it's wrong",
+        "Write the code first, then write tests afterward that describe whatever behavior the code happens to have",
+        "Skip requirements gathering and let code review catch any missing considerations after the PR is opened"
+      ],
+      "correct": 0,
+      "explanation": "The interview pattern — asking questions before implementing — is designed exactly for unfamiliar-domain situations where design considerations (burst handling, scope of limiting, breach behavior) aren't yet known. Implementing immediately (B) risks building the wrong thing. Writing tests to match whatever the code does (C) inverts test-driven iteration's purpose. Deferring to code review (D) is a much more expensive place to catch a fundamentally wrong design than before implementation starts."
+    },
+    {
+      "question": "A migration script fails two independent-seeming checks: (1) it doesn't handle `NULL` values in the `plan` column, and (2) a log message has a typo. Separately, it has two interacting issues: (3) retry logic double-counts failed rows on timeout, and (4) the row counter isn't safe under concurrent retries. How should this feedback be delivered?",
+      "options": [
+        "Report issues 3 and 4 together in one detailed message since they interact, and issues 1 and 2 can be handled sequentially since they're independent",
+        "Report all four issues strictly one at a time, regardless of whether they interact, to keep each round simple",
+        "Report all four issues in one message regardless of interaction, since more context is always better",
+        "Only report the highest-severity issue (3) and withhold the others until it's fixed"
+      ],
+      "correct": 0,
+      "explanation": "Interacting issues (3 and 4) should be given together because fixing one changes the correct fix for the other — sequential fixing risks a first fix that has to be partially undone once the second issue's context lands. Independent issues (1 and 2) don't carry that risk, so sequential handling is fine and keeps each round simpler. Treating everything identically (B, C) ignores this distinction, and withholding known issues (D) just adds unnecessary iteration rounds."
+    },
+    {
+      "question": "A CI pipeline step runs `claude \"Summarize the risk of this database migration\"` and the job never completes — it just sits until the runner times out. What is the correct fix?",
+      "options": [
+        "Add the `-p` (`--print`) flag so Claude Code runs non-interactively and exits after producing output",
+        "Increase the CI runner's timeout so Claude Code has more time to respond",
+        "Pipe `/dev/null` into the command's stdin to simulate a closed terminal",
+        "Split the prompt into smaller chunks sent as separate CI steps"
+      ],
+      "correct": 0,
+      "explanation": "Without `-p`/`--print`, Claude Code runs in interactive mode and waits for input that a CI job will never provide — this is a mode problem, not a timing problem, so increasing the timeout (B) just delays the same hang. Piping `/dev/null` (C) is a workaround around the real fix. Splitting the prompt (D) doesn't address why the process is waiting for input in the first place."
+    },
+    {
+      "question": "A team wants their CI-invoked review step to produce individual, actionable inline PR comments — one per issue found, each tagged with file, line, and severity — rather than a single block of prose a human has to manually re-triage. Which combination of flags supports this?",
+      "options": [
+        "`--output-format json` together with `--json-schema` pointing at a schema that defines fields like `file`, `line`, and `severity`",
+        "`--verbose` combined with `--pretty-print`",
+        "`-p` alone is sufficient; JSON structuring happens automatically once non-interactive mode is enabled",
+        "Piping the plain-text output through a separate regex-parsing script is the only supported approach"
+      ],
+      "correct": 0,
+      "explanation": "`--output-format json` plus `--json-schema` is the documented mechanism for forcing structured, schema-conformant output your pipeline can parse programmatically into individual PR comments. `-p` alone only controls interactivity, not output structure. `--verbose`/`--pretty-print` aren't the relevant flags, and regex-parsing free text is a fragile fallback, not the supported approach."
+    },
+    {
+      "question": "A Claude Code session generates a new payment-processing function, and the same session is then asked to review its own diff before opening the PR. The review comes back clean, but a human reviewer later finds a real edge-case bug. What does this scenario illustrate, and what's the better setup going forward?",
+      "options": [
+        "The same session that generated the code is a structurally weaker reviewer of it — future reviews should run as an independent instance with no memory of the generation session, given only the diff",
+        "The review flag was probably misconfigured; re-running `--output-format json` in the same session would have caught the bug",
+        "Self-review is equally reliable as independent review; this was simply an unlucky miss",
+        "The fix is to have the same session review the diff three times in a row and take a majority vote"
+      ],
+      "correct": 0,
+      "explanation": "A session that just wrote the code carries the same assumptions into reviewing it, making it prone to confirming its own reasoning rather than challenging it — an independent review instance, seeded only with the diff, is structurally better positioned to catch what the generating session missed. Re-running with a different output flag (B) doesn't address the underlying self-review weakness, calling it equally reliable (C) contradicts the observed miss, and repeating the same biased reviewer three times (D) doesn't introduce genuine independence."
+    }
+  ]
+}

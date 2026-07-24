@@ -1,6 +1,0 @@
-{
-  "name": "topic04-exercises",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": { "@anthropic-ai/sdk": "^0.37.0" }
-}

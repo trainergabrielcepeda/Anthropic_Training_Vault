@@ -1,0 +1,7 @@
+{
+  "name": "domain05-exercises-ts",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": { "@anthropic-ai/sdk": "^0.37.0" },
+  "devDependencies": { "typescript": "^5.0.0", "ts-node": "^10.9.0", "@types/node": "^20.0.0" }
+}

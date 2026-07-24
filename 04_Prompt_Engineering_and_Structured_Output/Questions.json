@@ -1,0 +1,203 @@
+{
+  "topic": "Prompt Engineering & Structured Output",
+  "questions": [
+    {
+      "question": "A code-review prompt currently instructs Claude to \"only report high-confidence findings\" and \"be conservative about flagging issues.\" False positives remain high. What is the most effective change?",
+      "options": [
+        "Replace the confidence-based instruction with specific categorical criteria defining exactly which issues to report (e.g., bugs, security) vs. skip (e.g., minor style, local patterns)",
+        "Lower the confidence threshold further, e.g. from 'high-confidence' to 'very high-confidence only'",
+        "Add a second Claude call that re-scores each finding's confidence before it is shown to the developer",
+        "Switch to a larger model, since confidence calibration generally improves with model scale"
+      ],
+      "correct": 0,
+      "explanation": "General confidence language ('be conservative', 'high-confidence only') does not reliably change what gets flagged, because the model cannot measure the confidence bar you're describing. Specific categorical criteria — what to report vs. skip, per category — is what actually changes precision. Options B and C are variations on the same failed lever; D misdiagnoses a prompt problem as a model-scale problem."
+    },
+    {
+      "question": "A PR-review bot's 'style' findings have a 70% false-positive rate; its 'security' findings are accurate but developers have started ignoring the tool's output entirely, including the security findings. What's happening, and what's the most effective first fix?",
+      "options": [
+        "A high false-positive rate in one category erodes trust in all categories; temporarily disable the style category while you rewrite its criteria, restoring trust in security findings immediately",
+        "Merge style and security findings into a single severity scale so developers can't tell them apart",
+        "Add a global disclaimer above all findings noting that some may be inaccurate",
+        "Increase max_tokens so the model has more room to reason about style findings before flagging them"
+      ],
+      "correct": 0,
+      "explanation": "False-positive rates in one category damage trust in accurate categories too — that's the dynamic described. The fastest fix that restores value from what's already working is disabling the broken category while its prompt is improved, not diluting or disclaiming the good output (B, C), and token budget isn't the underlying issue (D)."
+    },
+    {
+      "question": "An agent has two tools, `get_customer` and `lookup_order`, and frequently misapplies them on ambiguous requests that reference both a customer and an order. Detailed tool descriptions didn't fully resolve the ambiguity. What's the most targeted next step?",
+      "options": [
+        "Add 2-4 few-shot examples of ambiguous requests, each paired with the correct tool-call decision AND a stated reason for choosing it over the plausible alternative",
+        "Remove one of the two tools so there's no ambiguity to resolve",
+        "Add a routing classifier that pre-parses every request before it reaches the agent",
+        "Increase the temperature so the model explores more tool-call options before committing"
+      ],
+      "correct": 0,
+      "explanation": "Few-shot examples that show ambiguous cases WITH reasoning are the most targeted fix once description quality alone hasn't resolved the ambiguity — the reasoning is what transfers to new ambiguous cases. Removing a tool (B) loses real functionality; a bespoke classifier (C) is disproportionate infrastructure for a prompt-level problem; higher temperature (D) increases randomness, not judgment quality."
+    },
+    {
+      "question": "A team adds 3 few-shot examples of ambiguous escalation decisions to a support-triage prompt. On a case identical to one of the 3 examples, the model now performs perfectly. On a genuinely new ambiguous case that resembles none of the 3, performance is still poor. What does this suggest?",
+      "options": [
+        "The examples taught pattern-matching against the specific cases shown rather than the underlying decision principle — the examples likely need to demonstrate WHY a decision was made (the reasoning), not just show input/output pairs",
+        "Few-shot prompting is not effective for escalation decisions and should be abandoned in favor of a fine-tuned classifier",
+        "The prompt needs more examples — 3 is never enough for any task",
+        "This is expected and not fixable — novel cases inherently cannot be handled by prompting"
+      ],
+      "correct": 0,
+      "explanation": "The value of few-shot examples is generalization to novel patterns via the demonstrated reasoning, not verbatim memorization of the shown cases. If novel cases still fail, the examples likely lack explicit reasoning for the decision, not just the decision itself. B and D both give up prematurely on a fixable prompt issue; C assumes quantity is the fix when quality/content (reasoning) is the more likely gap."
+    },
+    {
+      "question": "An extraction pipeline pulls measurements from informal lab notes (e.g., \"about a cup\", \"roughly 2 tbsp\") into a structured `amount` + `unit` schema. The model frequently invents precise decimal values not stated in the source. What technique most directly addresses this?",
+      "options": [
+        "Few-shot examples showing correct handling of informal/imprecise phrasing, including how to represent values that are approximate rather than exact",
+        "Increase max_tokens so the model has more space to reason about unit conversion",
+        "Switch to a required-only schema so every field must always be populated",
+        "Lower the temperature to 0 to eliminate randomness in the extracted values"
+      ],
+      "correct": 0,
+      "explanation": "Few-shot examples are the documented fix for hallucination on messy, informally-structured extraction inputs — showing the model how to faithfully represent imprecision (rather than manufacturing false precision) teaches the desired behavior directly. Required-only fields (C) would make the fabrication problem worse, not better; A and D don't address the source of the hallucination."
+    },
+    {
+      "question": "You need Claude to return structured JSON for a downstream system that will reject any malformed payload. What is the most reliable way to guarantee well-formed, schema-compliant output?",
+      "options": [
+        "Use tool_use with a JSON schema defined as the tool's input_schema, and read the extracted data from the tool_use response block",
+        "Prompt Claude to 'return valid JSON only, no prose' and parse the text response with a JSON parser",
+        "Use assistant prefilling with '{' and validate the resulting string against a JSON schema after parsing",
+        "Ask Claude to double-check its own JSON for syntax errors before finalizing its response"
+      ],
+      "correct": 0,
+      "explanation": "tool_use with a JSON schema is the most reliable mechanism for guaranteed schema-compliant output — it structurally eliminates JSON syntax errors rather than relying on the model to follow a text-formatting instruction. B and C are both prompt-only text-parsing approaches that remain vulnerable to stray prose or malformed output; D just adds another unenforced instruction."
+    },
+    {
+      "question": "You expose three different extraction tools (`extract_invoice`, `extract_receipt`, `extract_contract`) to Claude and don't know in advance which document type any given input will be, but you need SOME structured tool call to occur every time — never a free-text response. Which `tool_choice` setting is correct?",
+      "options": [
+        "{\"type\": \"any\"} — Claude must call a tool, and chooses which one fits the input",
+        "{\"type\": \"auto\"} — Claude decides whether to call a tool at all",
+        "{\"type\": \"tool\", \"name\": \"extract_invoice\"} — force the most common document type",
+        "Omit tool_choice entirely so Claude defaults to the safest behavior"
+      ],
+      "correct": 0,
+      "explanation": "\"any\" guarantees a tool call (so you always get structured output) while letting Claude pick the correct schema for an unknown document type. \"auto\" (B) risks a plain-text response instead of a tool call. Forcing a specific tool (C) would misapply the invoice schema to receipts and contracts. Omitting tool_choice (D) defaults to \"auto\" behavior, the same problem as B."
+    },
+    {
+      "question": "An invoice-extraction schema marks `purchase_order_number` as a required string field. In production, roughly 30% of real invoices never state a PO number. What problem does this cause, and what's the fix?",
+      "options": [
+        "The required constraint pressures the model to fabricate a plausible-looking PO number on the 30% of invoices that lack one; make the field optional/nullable instead",
+        "No problem — tool_use guarantees the model will always find the correct value regardless of schema constraints",
+        "The fix is to lower max_tokens so the model can't generate an invented value",
+        "The fix is to switch from tool_use to prompted JSON, which handles missing fields more gracefully"
+      ],
+      "correct": 0,
+      "explanation": "A required field on data that may legitimately be absent from the source pressures the model to invent something to satisfy the schema. Making the field nullable lets the model truthfully report absence. B ignores how required fields interact with genuinely missing data; C and D don't address the actual mechanism (the required constraint itself)."
+    },
+    {
+      "question": "A `category` field uses a fixed enum (`utilities`, `software`, `travel`, `office_supplies`) for expense classification. New expense types keep appearing that don't fit any listed value, and the model is forced to pick the closest wrong bucket. What schema change best addresses this?",
+      "options": [
+        "Add an \"other\" enum value paired with a free-text category_detail field, so unmatched categories degrade gracefully instead of being miscategorized into an existing bucket",
+        "Remove the enum constraint entirely and make category a free-text string with no validation",
+        "Expand max_tokens so the model can write a longer justification for its chosen category",
+        "Add a numeric confidence score field so downstream systems can filter out low-confidence category assignments"
+      ],
+      "correct": 0,
+      "explanation": "The enum + \"other\" + detail-string pattern is the standard fix for extensible categorization — it keeps the enum's validation value for known categories while gracefully handling anything that doesn't fit. Removing the enum (B) loses all structure and validation; C and D don't address the actual miscategorization mechanism."
+    },
+    {
+      "question": "An invoice extraction via forced tool_use returns a perfectly schema-valid object, but the line items sum to $480 while `stated_total` reads $500. Why did tool_use fail to catch this, and what category of error is it?",
+      "options": [
+        "tool_use eliminates JSON syntax errors, not semantic errors — this is a semantic error (values that don't logically reconcile) requiring your own validation logic",
+        "This indicates a bug in the Anthropic SDK's schema validator that should be reported",
+        "tool_use only validates required fields, not optional ones, and stated_total was likely marked optional",
+        "This can only happen when tool_choice is set to \"auto\"; forcing a specific tool would have prevented it"
+      ],
+      "correct": 0,
+      "explanation": "Structured output via tool_use guarantees schema-COMPLIANT output (right types, right shape) but does not validate the semantic correctness of the values themselves. A total-mismatch is a classic semantic error that requires application-level validation logic, not a tooling bug (B), a required/optional field issue (C), or a tool_choice mode issue (D)."
+    },
+    {
+      "question": "A validation check finds that a receipt's tax amount was extracted into the `tip_amount` field instead. You resend the same document with a message noting: \"Validation error: tip_amount and tax_amount appear swapped — re-extract, checking each field against its label in the source.\" Is retrying appropriate here, and why?",
+      "options": [
+        "Yes — this is a format/structural misreading of information that IS present in the source, so specific error feedback lets the model self-correct on a second read",
+        "No — once an extraction is wrong, no retry can ever fix it and the record should go straight to manual entry",
+        "No — retries should never include the original document, only the error message, to avoid the model repeating its mistake",
+        "Yes, but only if the retry uses a higher temperature setting than the original request"
+      ],
+      "correct": 0,
+      "explanation": "Retrying works well for format/structural errors — the information exists in the source, and specific feedback about what was misread lets the model re-examine and correct it. B overgeneralizes (retries do work for this error class); C is backwards — the retry should include the original document plus the failed extraction plus the specific error; D introduces an irrelevant and counterproductive lever."
+    },
+    {
+      "question": "A contract-extraction schema has a `renewal_term_months` field. For a specific contract, the source document never states a renewal term anywhere — it's simply not written into the contract. Repeated retries with \"the renewal_term_months field is missing, please re-extract\" keep returning different, plausible-looking numbers each time. What's the correct interpretation and fix?",
+      "options": [
+        "The information is genuinely absent from the source, so retrying is ineffective and will keep producing fabricated values; make the field nullable and accept null rather than continuing to retry",
+        "The retries are failing because max_tokens is too low for this field",
+        "The retries are failing because the schema doesn't mark this field as an enum",
+        "The retries need more specific error messages describing exactly which decimal value is expected"
+      ],
+      "correct": 0,
+      "explanation": "This is exactly the case where retries can't help — the required information simply isn't in the source. Re-prompting doesn't recover data that was never stated; it pressures the model to keep guessing. The fix is schema design (nullable field, accept null) plus stopping the retry loop, not a token budget, enum type, or wording change to the error message."
+    },
+    {
+      "question": "A code-review tool's structured findings currently include `location`, `issue`, `severity`, and `suggested_fix`. The team wants to analyze, over time, which specific code constructs are driving the false-positive dismissals developers keep clicking. What field addition most directly enables this analysis?",
+      "options": [
+        "A `detected_pattern` field on each finding recording the specific construct that triggered it (e.g., \"string_concatenation_in_sql\"), which can later be aggregated against dismissal rates",
+        "A `confidence_score` field with a 0-100 numeric rating on each finding",
+        "A free-text `notes` field where the model can write anything it wants about the finding",
+        "A `reviewer_id` field identifying which internal review pass produced the finding"
+      ],
+      "correct": 0,
+      "explanation": "A `detected_pattern` field that records what specifically triggered each finding is what lets you aggregate dismissal patterns by pattern type later — turning an aggregate false-positive rate into an actionable, per-pattern precision fix (tying back to explicit per-category criteria). A confidence score (B) doesn't identify the root pattern; free text (C) isn't reliably aggregable; reviewer ID (D) doesn't capture what triggered the finding at all."
+    },
+    {
+      "question": "A manager proposes moving two workflows to the Message Batches API for its 50% cost savings: (1) a pre-merge CI check developers actively wait on, and (2) a weekly technical-debt report generated overnight. How should this proposal be evaluated?",
+      "options": [
+        "Batch the weekly report only; keep the pre-merge check on the synchronous API, since Batches has no latency SLA and can take up to 24 hours — unacceptable for a blocking check",
+        "Batch both workflows, since the 50% savings applies regardless of use case",
+        "Keep both synchronous, since batch processing introduces result-ordering problems that are hard to work around",
+        "Batch both, but add a client-side timeout that falls back to a synchronous call if the batch takes more than 5 minutes"
+      ],
+      "correct": 0,
+      "explanation": "The Batches API is appropriate for non-blocking, latency-tolerant workloads (like a weekly report) and inappropriate for blocking workflows like a pre-merge gate, precisely because it has no latency guarantee and can take up to 24h. B ignores that mismatch. C overstates a non-issue — results correlate cleanly via custom_id. D adds a synchronous fallback for a use case that should simply never have been batched in the first place."
+    },
+    {
+      "question": "A batch submission of 5,000 document-extraction requests completes with 40 failures, most due to documents exceeding the per-request size limit. What is the most cost-effective way to recover?",
+      "options": [
+        "Resubmit only the 40 failed requests, identified by their custom_id, after chunking the oversized documents into smaller pieces",
+        "Resubmit the entire 5,000-request batch after applying the chunking fix, to guarantee consistency",
+        "Switch entirely to the synchronous API for all future submissions to avoid this failure mode",
+        "Discard the 40 failed documents permanently, since batch failures cannot be resubmitted"
+      ],
+      "correct": 0,
+      "explanation": "custom_id is exactly what lets you isolate and resubmit only the failed requests with the underlying issue (oversized documents) fixed — resubmitting the full batch (B) wastes the discount already captured on the 4,960 successes. Abandoning the Batches API entirely (C) overreacts to a fixable, bounded failure mode; discarding failures (D) is unnecessary since they're identifiable and fixable."
+    },
+    {
+      "question": "Your SLA promises document-processing results within 32 hours of arrival. You're using the Message Batches API, which can take up to 24 hours to process a submitted batch. How frequently must you submit accumulated documents to guarantee the SLA?",
+      "options": [
+        "At least every 8 hours (32h SLA − 24h max batch processing = 8h maximum wait before a document is swept into a submission)",
+        "At least every 24 hours, matching the batch processing window exactly",
+        "At least every 32 hours, matching the SLA directly",
+        "Submission frequency is irrelevant as long as the batch API is used, since the 50% discount guarantees compliance"
+      ],
+      "correct": 0,
+      "explanation": "The worst case for any document is: it arrives just after a submission, waits the full submission interval before being included, then takes up to 24h to process. To keep that total ≤32h, the submission interval must be ≤8h (32 − 24 = 8). Submitting every 24h (B) or 32h (C) would blow the SLA for a document that arrives right after a submission; cost savings (D) have no bearing on latency guarantees."
+    },
+    {
+      "question": "A generator Claude instance writes a data-parsing function and, in the same session, is asked to \"review your own code critically for edge cases.\" It reports no issues, but a fresh Claude instance given only the function (no prior conversation) immediately catches an off-by-one bug. What explains the difference, and what's the better architecture?",
+      "options": [
+        "The generator retains reasoning context from writing the code, making it less likely to question its own prior decisions even when asked to self-review; use an independent review instance without that context instead",
+        "The generator instance was simply using a weaker model than the fresh instance",
+        "Self-review instructions always fail regardless of context, so no self-review instruction is ever worth including anywhere",
+        "The fresh instance got lucky; there's no structural reason to prefer independent review over self-review"
+      ],
+      "correct": 0,
+      "explanation": "A model that just generated an artifact retains the reasoning context from that generation, which anchors it against questioning its own decisions — even with an explicit self-review instruction. An independent instance without that context reviews cold and catches issues more reliably. B invents an unstated model-tier difference; C and D both dismiss a real, structural, well-documented effect."
+    },
+    {
+      "question": "A PR touching 14 files gets an inconsistent single-pass review: deep analysis on some files, superficial on others, and the same code pattern is flagged as a bug in one file but approved in another within the same review. What's the best architectural fix?",
+      "options": [
+        "Split the review into per-file local-analysis passes plus a separate cross-file integration pass, rather than reviewing everything in one pass",
+        "Switch to a model with a larger context window so all 14 files fit more comfortably in one pass",
+        "Require the review to run 3 independent times and only report findings that appear in at least 2 of the 3 passes",
+        "Block the PR until it is manually split into 4-5 smaller PRs by the author"
+      ],
+      "correct": 0,
+      "explanation": "The root cause is attention dilution across many files reviewed at once, not context-window size — splitting into focused per-file passes plus a dedicated integration pass fixes the actual problem. A bigger context window (B) misdiagnoses the issue as a capacity problem. Majority-voting across repeated passes (C) would suppress real but intermittently-caught bugs. Forcing smaller PRs (D) shifts the burden onto developers instead of fixing the review architecture."
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "topic": "Context Management & Reliability",
+  "questions": [
+    {
+      "question": "A support agent summarizes conversation history every 10 turns to save tokens. After several summarization passes, it approves a refund for the wrong amount — the customer's original stated figure ($214.50) had been compressed into \"a partial refund\" during an earlier summarization pass. What is the most effective fix?",
+      "options": [
+        "Extract transactional facts (amounts, dates, order numbers) into a persistent case-facts block re-injected into every prompt, kept separate from the summarized history",
+        "Rewrite the summarization prompt to be more detailed and instruct it to never drop numbers",
+        "Increase the summarization interval from every 10 turns to every 20 turns",
+        "Switch to a larger context window model so summarization is no longer necessary at any point"
+      ],
+      "correct": 0,
+      "explanation": "Progressive summarization is inherently lossy for exact transactional values — no amount of prompt tuning on the summarizer reliably guarantees numbers survive. The fix is structural: pull transactional facts out into a persistent block that bypasses summarization entirely. A bigger context window (option D) delays the problem but doesn't eliminate summarization's fundamental lossiness once conversations grow long enough."
+    },
+    {
+      "question": "A document-synthesis agent is given 9 source documents concatenated into a single prompt. It correctly summarizes findings from documents 1, 2, 8, and 9, but omits a significant contradictory finding present in document 5. All 9 documents were fully included in context. What best explains this?",
+      "options": [
+        "The \"lost in the middle\" effect — models attend more reliably to the beginning and end of long inputs than to content buried in the middle",
+        "Document 5 must have contained malformed or corrupted text that the model couldn't parse",
+        "The model's context window was too small to hold all 9 documents simultaneously",
+        "The synthesis agent's system prompt lacked instructions to read every document"
+      ],
+      "correct": 0,
+      "explanation": "This is the textbook lost-in-the-middle signature: full content present, but middle-positioned information under-weighted relative to the start and end. The fix is to place a key-findings summary at the beginning of the aggregated input with explicit section headers, not to assume corruption or a missing instruction."
+    },
+    {
+      "question": "An agent calls a `lookup_order` tool that returns 40+ fields (warehouse codes, audit timestamps, carrier metadata) per call. Over a 15-turn session with repeated lookups, context fills rapidly and the agent starts truncating relevant earlier turns. What is the most effective fix?",
+      "options": [
+        "Trim each tool result to only the 4-5 fields relevant to the current task immediately after the call returns, before it accumulates in history",
+        "Summarize the full tool output every 5 turns to compress accumulated context",
+        "Switch to a model with a larger context window so truncation stops occurring",
+        "Cache tool results externally and replace them in context with a generic \"see cache\" placeholder"
+      ],
+      "correct": 0,
+      "explanation": "Tool output bloat accumulates disproportionately to relevance — the fix is to filter down to relevant fields at the point of ingestion, not after the fact. Periodic summarization (B) still risks losing exact values discussed earlier in this domain; a bigger window (C) delays rather than solves the problem; an opaque cache placeholder (D) removes the data the agent may still need to reason over directly."
+    },
+    {
+      "question": "Mid-conversation, a customer with a moderately complex but policy-covered billing question says: \"Just put me through to a person.\" The agent believes it could resolve the issue in one more turn. What should it do?",
+      "options": [
+        "Escalate immediately, honoring the explicit request without first attempting resolution",
+        "Attempt the resolution in one more turn, then escalate only if the customer is unsatisfied with the outcome",
+        "Ask the customer to confirm they still want a human before escalating, to avoid an unnecessary handoff",
+        "Offer a choice: continue automated resolution now, or wait in queue for a human"
+      ],
+      "correct": 0,
+      "explanation": "An explicit request for a human should be honored immediately, regardless of whether the agent believes it could resolve the case. Attempting resolution first (B), asking for confirmation (C), or offering a choice that re-litigates the request (D) all read as not listening to what the customer already stated plainly."
+    },
+    {
+      "question": "A customer asks the agent to match a competitor's advertised price. The support policy document defines rules for price adjustments on items purchased at the company's own site within 14 days, but says nothing about competitor price matching. What should the agent do?",
+      "options": [
+        "Escalate — this is a genuine policy gap, not merely a complex case the agent can reason its way through",
+        "Deny the request, since it doesn't match any documented price-adjustment rule",
+        "Approve a price match using the same 14-day and percentage terms as the own-site adjustment policy, by analogy",
+        "Ask the customer for proof of the competitor's price, then decide based on whether the proof is convincing"
+      ],
+      "correct": 0,
+      "explanation": "Policy silence on a specific request type is a different situation from a request the agent finds merely difficult — the agent has no authority to improvise a rule (approving by analogy) or assume policy intent (denial). Escalation is correct because a human needs to either apply undocumented judgment or create a new policy, not because the case is complicated."
+    },
+    {
+      "question": "A team implements escalation by having the agent self-report a 1-10 confidence score after each turn and auto-escalating below 6. In production, several high-confidence (8-9) responses turn out to be wrong on cases involving undocumented policy exceptions. What does this reveal?",
+      "options": [
+        "Self-reported confidence is a poor proxy for actual resolvability — the agent was confidently wrong on exactly the hard cases the mechanism was meant to catch",
+        "The confidence threshold was set too low and should be raised from 6 to 8",
+        "The agent needs a larger model to produce better-calibrated confidence scores",
+        "Confidence scores work correctly; the errors are unrelated data-quality issues in the underlying tools"
+      ],
+      "correct": 0,
+      "explanation": "This is the core failure mode of self-reported confidence: it's least reliable precisely on the hard cases where an agent doesn't know what it doesn't know. Raising the threshold (B) or using a bigger model (C) doesn't fix an approach that's measuring the wrong thing — the fix is explicit escalation criteria (e.g., policy-gap detection) with few-shot examples, not confidence-score tuning."
+    },
+    {
+      "question": "A tool call to look up a customer by last name returns two matching accounts with different email addresses and order histories. What should the agent do?",
+      "options": [
+        "Ask the customer for an additional identifier (email, order number, or ZIP code) to disambiguate before proceeding",
+        "Select the account with the most recent order activity, since it's statistically the more likely match",
+        "Merge relevant information from both accounts into the response to cover either possibility",
+        "Proceed with the first account returned by the tool and correct course if the customer objects"
+      ],
+      "correct": 0,
+      "explanation": "Multiple matches call for clarification, not heuristic selection. Picking based on recency (B) or defaulting to the first result (D) both risk acting confidently on the wrong account — a serious problem for anything touching orders or payment. Merging both accounts (C) risks leaking one customer's data into another's response."
+    },
+    {
+      "question": "A web-search subagent times out partway through a query and reports back to its coordinator with the string `\"status\": \"search_unavailable\"`. What is the main problem with this error report?",
+      "options": [
+        "It's a generic status that hides whether this was a transient access failure worth retrying or something else, and discards any partial results already gathered",
+        "It should have been reported as a Python exception instead of a JSON status field",
+        "The coordinator cannot parse JSON, so any structured status will fail regardless of content",
+        "Timeouts should never be reported to the coordinator at all — they should be silently retried indefinitely by the subagent"
+      ],
+      "correct": 0,
+      "explanation": "A generic error status collapses the distinction between a retryable transient failure and a genuine dead end, and throws away any partial results gathered before the timeout — both of which the coordinator needs to make a good recovery decision. The fix is a structured error object: failure type, what was attempted, partial results, and alternative approaches."
+    },
+    {
+      "question": "A document-analysis subagent's query executes successfully and returns zero matching records — the source genuinely contains nothing relevant to the query. How should this be distinguished from an access failure (e.g., the source being unreachable) in the subagent's report to the coordinator?",
+      "options": [
+        "As a successful result with an empty result set, distinct from an error status used for access failures like timeouts or auth errors",
+        "Both should be reported identically as \"no results,\" since the coordinator's next action is the same either way",
+        "As an error, since zero results almost always indicates something went wrong with the query",
+        "By omitting any report at all, since there is nothing to synthesize from an empty result"
+      ],
+      "correct": 0,
+      "explanation": "A successful query with no matches and a failed query are fundamentally different events requiring different coordinator responses — retrying an access failure might help; retrying a confirmed-empty query wastes effort. Collapsing them (B) or treating empty results as errors (C) both lead the coordinator to the wrong recovery action."
+    },
+    {
+      "question": "In a 5-subagent research pipeline, one subagent throws an unhandled exception on a malformed source document. The current implementation lets this exception propagate to a top-level handler that terminates the entire multi-agent run, discarding the other four subagents' completed results. What is the better design?",
+      "options": [
+        "The subagent should attempt local recovery for transient issues, and only propagate an unresolvable error upward with what was attempted and any partial results — without killing the overall workflow",
+        "Wrap the entire pipeline in a single global try/except that silently logs all errors and returns an empty final report",
+        "Keep the current behavior, since a single subagent failure means the entire report cannot be trusted",
+        "Have each subagent run in total isolation with no error reporting to the coordinator at all, to prevent any single failure from affecting others"
+      ],
+      "correct": 0,
+      "explanation": "Terminating the whole workflow over one subagent's failure is one of the two classic anti-patterns (the other being silently swallowing the error as success). The fix is local recovery where possible and structured propagation of only the unresolvable failures, so four successful results aren't discarded to guard against one recoverable one."
+    },
+    {
+      "question": "During a long codebase exploration session, an agent that earlier identified the exact file and line number of a `RefundProcessor` class starts, several turns later, describing refund logic in terms of \"the typical pattern used in this codebase\" instead of citing the specific class again. What does this indicate, and what is the most direct fix?",
+      "options": [
+        "Context degradation from a long session — maintain a scratchpad file recording key findings (file paths, class names) and reference it for subsequent questions",
+        "The model has forgotten Python syntax and needs the file re-read from scratch",
+        "This is expected behavior and requires no intervention, since the agent is still producing plausible-sounding output",
+        "Switch to a model with a larger context window so the earlier finding is retained more reliably"
+      ],
+      "correct": 0,
+      "explanation": "Reverting to vague \"typical pattern\" language instead of citing specifics discovered earlier is the recognizable signature of context degradation in extended sessions. A scratchpad file that persists key findings outside the conversational context, referenced on subsequent questions, addresses the problem directly — a larger window (D) doesn't fix attention degradation across a very long, noisy session."
+    },
+    {
+      "question": "A developer-productivity agent needs to trace every caller of a specific function across a large, unfamiliar codebase before making a change. Which approach best preserves the main agent's ability to reason clearly about the overall task?",
+      "options": [
+        "Spawn a subagent to investigate the specific, bounded question (tracing all callers) and report back a condensed answer, while the main agent preserves high-level coordination",
+        "Have the main agent run the full grep and read every result directly in its own context, to ensure nothing is missed",
+        "Ask the user to manually list every file that might call the function before starting",
+        "Skip tracing callers entirely and make the change, relying on tests to catch any breakage"
+      ],
+      "correct": 0,
+      "explanation": "Delegating a bounded, verbose exploration task to a subagent isolates the noisy grep/read output from the main agent's context, which is exactly what keeps the coordinating agent's reasoning clean over a long session. Doing it all in the main agent's own context (B) is the pattern that causes the degradation described elsewhere in this domain."
+    },
+    {
+      "question": "A long Claude Code session exploring a legacy codebase has filled its context with verbose file dumps and search results from earlier phases that are no longer needed turn-by-turn, but the developer wants to keep working in the same session rather than starting over. What is the most appropriate action?",
+      "options": [
+        "Run `/compact` to reduce context usage by condensing the conversation so far, while continuing in the same session",
+        "Start an entirely new session and manually re-explain everything discovered so far from memory",
+        "Manually delete individual messages from the conversation history one at a time",
+        "Switch models mid-session to one with a larger context window"
+      ],
+      "correct": 0,
+      "explanation": "`/compact` is designed exactly for this situation — condensing accumulated context (like verbose discovery output) to free room to continue in the same session. Starting over (B) discards continuity and relies on imperfect recall; there's no supported way to delete individual messages (C); switching models mid-session (D) doesn't address the accumulated noise itself."
+    },
+    {
+      "question": "A multi-phase codebase migration agent crashes partway through phase 3 of 5. Each agent involved had been exporting its findings and progress to files on disk as it worked. What is the best way to resume without redoing completed work?",
+      "options": [
+        "Have the coordinator load a manifest summarizing what each agent had completed and where it left off, resuming from that state",
+        "Restart from phase 1, since crash recovery in multi-phase agent systems always requires starting over",
+        "Manually inspect chat logs to reconstruct what happened before the crash",
+        "Skip directly to phase 4, assuming phase 3 was likely complete based on its position in the sequence"
+      ],
+      "correct": 0,
+      "explanation": "Structured state-export (each agent writing its state to a known location) combined with a coordinator-loaded manifest on resume is exactly what turns a crash into a resumable checkpoint rather than a full restart. Assuming phase 3 was probably done (D) risks silently skipping incomplete work; restarting from scratch (B) wastes the persisted progress that was the whole point of exporting state."
+    },
+    {
+      "question": "An invoice-extraction system reports 97% overall field-extraction accuracy and the team proposes removing human review entirely. A closer look shows 99.6% accuracy on typed invoices (92% of volume) but 71% accuracy on handwritten receipts (8% of volume). What should happen before reducing review?",
+      "options": [
+        "Validate accuracy by document type and field segment, and keep human review in place for the handwritten-receipt segment specifically, rather than removing review based on the blended aggregate",
+        "Remove review entirely, since 97% clears most production accuracy bars",
+        "Reduce review for typed invoices only, and increase the aggregate accuracy target to 99% for the entire system",
+        "Retrain on a larger dataset until the aggregate number itself rises above 99%, then remove review across the board"
+      ],
+      "correct": 0,
+      "explanation": "The 97% aggregate is dominated by the easy majority segment and masks a real problem on handwritten receipts. Accuracy must be validated per document type/field before reducing review for any segment — removing review system-wide (B) or chasing a higher blended average (D) both leave the weak segment exposed."
+    },
+    {
+      "question": "A team wants an ongoing way to catch new, previously-unseen error patterns in a document-extraction pipeline's high-confidence outputs, not just confirm the error rate measured during initial validation. What is the most appropriate technique?",
+      "options": [
+        "Stratified random sampling of high-confidence extractions within each document-type/field segment, reviewed on an ongoing basis",
+        "A single large random sample taken once, at initial launch, across the full extraction volume",
+        "Reviewing only the extractions the model itself flagged as low-confidence",
+        "Waiting for customer complaints to surface any error patterns that exist"
+      ],
+      "correct": 0,
+      "explanation": "Stratified sampling within each segment, done on an ongoing basis, is what catches both drift in measured accuracy and novel failure modes that a one-time or unstratified sample could miss. Reviewing only low-confidence outputs (C) misses confidently-wrong errors entirely, and waiting for complaints (D) means the pipeline is already producing customer-facing harm before anyone notices."
+    },
+    {
+      "question": "Two research subagents each report a growth statistic from different credible industry sources: one says 3.2% year-over-year decline, the other says 4.1%. The synthesis agent needs to combine their findings into one report. What should it do?",
+      "options": [
+        "Include both values in the report, explicitly annotated with their respective sources, rather than picking one",
+        "Report the average of the two figures (3.65%) as the single reconciled value",
+        "Report only the figure from the source published more recently, discarding the other",
+        "Omit the statistic entirely from the report, since the sources disagree"
+      ],
+      "correct": 0,
+      "explanation": "Arbitrarily picking, averaging, or discarding manufactures false confidence or loses real information — the correct approach is to preserve both values with source attribution and let whoever is positioned to judge (a downstream reader or coordinator) reconcile them, especially since the difference may reflect differing methodology rather than a real contradiction."
+    },
+    {
+      "question": "A synthesis report states \"Company X grew from 450 to 510 employees,\" but a reviewer flags this as an unexplained internal contradiction between two subagent findings. Investigation shows one figure came from a press release and the other from the company's careers page, six months apart. What structural change would have prevented the false-contradiction flag?",
+      "options": [
+        "Requiring each subagent to include the publication or collection date alongside every structured claim it reports",
+        "Requiring both subagents to search for statistics from the exact same source only",
+        "Rounding all employee-count statistics to the nearest 100 to reduce apparent discrepancies",
+        "Having the synthesis agent discard whichever figure is numerically smaller as presumably outdated"
+      ],
+      "correct": 0,
+      "explanation": "Without a date attached to each claim, a synthesis step has no way to distinguish a genuine contradiction from two accurate snapshots at different points in time. Requiring publication/collection dates in structured subagent output resolves this at the source rather than requiring guesswork (D) or lossy workarounds (C) downstream."
+    }
+  ]
+}

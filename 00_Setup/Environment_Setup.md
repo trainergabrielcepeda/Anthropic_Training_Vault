@@ -117,8 +117,8 @@ const client = new Anthropic();
 
 | Alias | Full Model ID | Best For |
 | ----- | ------------- | -------- |
-| Haiku | `claude-haiku-4-5-20251001` | Fast, low-cost tasks |
-| Sonnet | `claude-sonnet-4-6` | Balanced performance |
-| Opus | `claude-opus-4-8` | Complex reasoning |
+| Haiku 4.5 | `claude-haiku-4-5-20251001` | Fast, low-cost tasks; subagents that don't need deep reasoning |
+| Sonnet 5 | `claude-sonnet-5` | Balanced performance; default choice for most agentic/coding work |
+| Opus 4.8 | `claude-opus-4-8` | Complex reasoning; coordinator/orchestrator roles in multi-agent systems |
 
-Use the full model ID in code. Aliases are for reference only.
+Use the full model ID in code. Aliases are for reference only. This exam does not test model comparison or benchmarking (see [[../00_Exam_Guide/Out_of_Scope_Topics|Out-of-Scope Topics]]) — this table exists only so exercise code runs against a real model.

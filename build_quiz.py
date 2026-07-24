@@ -18,12 +18,11 @@ ROOT = Path(__file__).parent
 QUIZ_HTML = ROOT / "Assets" / "quiz.html"
 
 TOPIC_FOLDERS = [
-    "01_Claude_Models_and_API",
-    "02_Prompt_Engineering",
-    "03_Tool_Use",
-    "04_Responsible_AI",
-    "05_Agentic_Workflows",
-    "06_Production_and_Evaluation",
+    "01_Agentic_Architecture_and_Orchestration",
+    "02_Tool_Design_and_MCP_Integration",
+    "03_Claude_Code_Configuration_and_Workflows",
+    "04_Prompt_Engineering_and_Structured_Output",
+    "05_Context_Management_and_Reliability",
 ]
 
 def load_banks():

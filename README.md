@@ -1,19 +1,23 @@
-# Anthropic CAA Architect Foundations — Training Vault
+# Claude Certified Architect – Foundations (CCAR-F) — Training Vault
 
-An Obsidian vault with structured study materials to prepare for the **Anthropic Certified AI Associate (CAA)** certification exam.
+An Obsidian vault with structured study materials to prepare for Anthropic's **Claude Certified Architect – Foundations (CCAR-F)** exam — the architecture-level credential in Anthropic's 2026 certification family (Associate / Developer / Architect Foundations / Architect Professional).
 
-> **Start here if you haven't opened Obsidian yet.** This file covers cloning the repo, installing plugins, and connecting Claude Code. Once the vault is loaded in Obsidian, open **`Home.md`** — that's your study hub with topic navigation, exam weights, and links to all notes and exercises.
+> **Start here if you haven't opened Obsidian yet.** This file covers cloning the repo, installing plugins, and connecting Claude Code. Once the vault is loaded in Obsidian, open **`Home.md`** — that's your study hub with domain navigation, exam weights, and links to all notes and exercises.
+
+> [!note] Renamed exam
+> This certification launched in March 2026 as **CCA-F** (partner-only) and was renamed **CCAR-F** and opened to the public in July 2026. If you see "CCA-F" elsewhere (older blog posts, some third-party prep material), it's the same exam.
 
 ## What's Inside
 
-This vault covers the core domains tested in the CAA exam, including:
+This vault is built directly from Anthropic's official CCAR-F Exam Guide (v1.0, July 2026) and mirrors its five scored domains exactly:
 
-- Claude model capabilities, limitations, and appropriate use cases
-- Responsible AI principles and Anthropic's safety philosophy
-- Prompt engineering best practices
-- API usage and integration patterns
-- Constitutional AI and RLHF concepts
-- Evaluating and mitigating AI risks
+- **Agentic Architecture & Orchestration (27%)** — agentic loops, coordinator/subagent patterns, Agent SDK hooks, session management
+- **Tool Design & MCP Integration (18%)** — tool description quality, structured MCP error responses, tool distribution, built-in tool selection
+- **Claude Code Configuration & Workflows (20%)** — CLAUDE.md hierarchy, custom commands/skills, plan mode, CI/CD integration
+- **Prompt Engineering & Structured Output (20%)** — explicit-criteria precision, few-shot consistency, `tool_use`/JSON-schema extraction, batch processing
+- **Context Management & Reliability (15%)** — context preservation, escalation design, error propagation, human review calibration
+
+It deliberately **excludes** topics the exam guide marks out of scope — Constitutional AI/RLHF, model internals, fine-tuning, API auth/billing, and more. See `00_Exam_Guide/Out_of_Scope_Topics.md` once the vault is open.
 
 ## Getting Started
 
@@ -107,7 +111,7 @@ This step lets Claude interact with Obsidian live — opening notes, searching, 
    ```
    You should see `obsidian-vault` listed as an active MCP server.
 
-After this, you can ask Claude things like "summarize all my notes on prompt engineering" or "create a new note about Constitutional AI" and it will act directly on your vault.
+After this, you can ask Claude things like "summarize all my notes on MCP tool design" or "add a practice question about plan mode vs. direct execution" and it will act directly on your vault.
 
 ### Useful Claude Code commands
 
@@ -130,8 +134,8 @@ Please keep notes factually accurate and cite official Anthropic documentation w
 ## Resources
 
 - [Anthropic Documentation](https://docs.anthropic.com)
-- [Claude Model Overview](https://www.anthropic.com/claude)
-- [Anthropic Responsible Scaling Policy](https://www.anthropic.com/news/anthropics-responsible-scaling-policy)
+- [Claude Certified Architect – Foundations — official certification page](https://anthropic-partners.skilljar.com/claude-certified-architect-foundations-certification) (download the official Exam Guide PDF from here before you register)
+- [Claude API Reference](https://docs.anthropic.com/en/api)
 
 ## License
 

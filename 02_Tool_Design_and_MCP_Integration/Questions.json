@@ -1,0 +1,181 @@
+{
+  "topic": "Tool Design & MCP Integration",
+  "questions": [
+    {
+      "question": "An agent has two tools available: search_docs (\"Searches documents\") and search_knowledge_base (\"Searches the knowledge base\"). Logs show it routes similar user questions to different tools from one run to the next. What is the most effective first step?",
+      "options": [
+        "Add a routing classifier upstream that pre-selects the tool before the request reaches Claude.",
+        "Add 5-8 few-shot examples to the system prompt demonstrating correct selection between the two tools.",
+        "Rewrite both descriptions to state exactly what each tool searches, with example queries, input formats, and explicit mutual exclusions.",
+        "Merge both tools into a single tool with an internal routing parameter."
+      ],
+      "correct": 2,
+      "explanation": "Tool descriptions are the primary signal Claude uses for tool selection. Vague, near-identical descriptions are almost always the root cause of this kind of inconsistent routing, and rewriting them is the lowest-effort, highest-leverage first step. A routing classifier and few-shot examples add complexity/token overhead without fixing the underlying ambiguity; merging is a bigger architectural change than a 'first step' warrants."
+    },
+    {
+      "question": "A single tool process_document handles summarization, data extraction, and fact-checking through a `mode` parameter (\"summarize\", \"extract\", \"verify\"). Users report Claude frequently passes the wrong mode value for what they actually asked. What is the most effective redesign?",
+      "options": [
+        "Split process_document into purpose-specific tools (e.g. summarize_content, extract_data_points, verify_claim_against_source), each with its own name, description, and input/output contract.",
+        "Add a preprocessing keyword parser that sets the mode parameter automatically before the request reaches Claude.",
+        "Add stricter enum validation on mode so an invalid value raises a hard error.",
+        "Keep one tool, but move the mode explanation from the tool description into the system prompt."
+      ],
+      "correct": 0,
+      "explanation": "Splitting into purpose-specific tools lets each tool's NAME carry routing signal, which plays directly to what Claude is good at (tool selection) instead of making it reliably pick the correct value of a hidden internal parameter. Validation only detects the wrong mode after the fact rather than preventing it, and a keyword parser bypasses the model's own reasoning with a brittle heuristic."
+    },
+    {
+      "question": "A system prompt includes: \"Always check inventory levels before answering product questions.\" The agent now calls check_inventory even for unrelated messages like \"What's your return policy on products?\" because they happen to contain the word \"product.\" What is the most likely cause and the correct fix?",
+      "options": [
+        "Reduce the total number of tools available to the agent so selection pressure is lower.",
+        "Rewrite the blanket system-prompt instruction to state the specific conditions under which check_inventory should be called, instead of a general keyword trigger.",
+        "Narrow the check_inventory tool's own description to more inventory-specific language.",
+        "Add a confirmation tool Claude must call to rule out inventory relevance before proceeding."
+      ],
+      "correct": 1,
+      "explanation": "The tool's own description isn't necessarily the problem here — a blanket, keyword-triggered instruction in the system prompt is overriding good tool-selection behavior. The fix is rewriting that instruction to state specific trigger conditions, not touching the tool definition or adding more tools/steps."
+    },
+    {
+      "question": "An MCP tool currently returns the plain string \"Operation failed\" for every kind of failure — timeouts, invalid input, and policy blocks all look identical to the calling agent. What is the most effective fix?",
+      "options": [
+        "Increase the automatic retry count so transient failures resolve themselves before reaching the agent.",
+        "Log the failure server-side with a stack trace for later debugging.",
+        "Replace the string with a numeric HTTP-style status code the agent can map to a fixed action.",
+        "Return structured error metadata — errorCategory, isRetryable, and a human-readable message — so the agent can choose retry, correction, or escalation appropriately."
+      ],
+      "correct": 3,
+      "explanation": "Uniform failure strings prevent the agent from making an appropriate recovery decision. Structured metadata (errorCategory, isRetryable, message) is what lets it distinguish a worth-retrying transient failure from a validation problem or a policy block that will never succeed no matter how many times it's retried."
+    },
+    {
+      "question": "A refund tool rejects a $750 request because it exceeds a $500 automatic-approval policy limit. Retrying with the identical input will never succeed. How should the tool report this?",
+      "options": [
+        "isError: true, errorCategory: \"transient\", isRetryable: true, with a generic message suggesting the agent retry with a smaller amount.",
+        "isError: true, errorCategory: \"business\", isRetryable: false, with a customer-friendly explanation of the policy limit.",
+        "isError: false, with a status field of \"pending\" so the workflow treats it as provisionally successful.",
+        "Throw an unhandled exception so the failure propagates immediately to whatever is calling the tool."
+      ],
+      "correct": 1,
+      "explanation": "This is a business-rule violation, not a system fault — it should be marked isError: true, isRetryable: false, and errorCategory: \"business\", with a message that can be shown to the customer or a human reviewer as-is. Marking it transient would encourage wasted retries; marking it a plain success hides that the refund did not go through."
+    },
+    {
+      "question": "A subagent's document-search tool times out intermittently under load. Which recovery design best matches the pattern of resolving transient failures locally and only propagating unresolvable errors?",
+      "options": [
+        "Immediately report every timeout to the coordinator and let it decide whether to retry.",
+        "Silently return an empty result set so the overall workflow isn't interrupted.",
+        "Retry the call itself once or twice with backoff inside the subagent; only if it still fails, report to the coordinator with what was attempted and any partial results already gathered.",
+        "Terminate its own execution immediately so the orchestrator restarts the entire research task from scratch."
+      ],
+      "correct": 2,
+      "explanation": "Local recovery for transient failures avoids burning coordinator round trips on problems the subagent can likely solve itself. If it truly can't recover, propagating structured context (what was attempted, any partial results) lets the coordinator make an informed decision, unlike silently faking success or overreacting by killing the whole workflow."
+    },
+    {
+      "question": "A research subagent has been given 16 tools spanning search, formatting, database writes, and email sending so it can \"handle anything that comes up.\" Tool-selection accuracy has dropped noticeably compared to when it had 5 tools. What is the most effective fix?",
+      "options": [
+        "Restrict the subagent's tools to only what its specific role requires, delegating other capabilities to separate specialized subagents.",
+        "Increase max_tokens so Claude has more room to reason about which tool to pick.",
+        "Switch to a larger model that can hold more tools in context reliably.",
+        "Reorder the tools array so more frequently used tools appear first."
+      ],
+      "correct": 0,
+      "explanation": "A large tool count directly increases decision complexity and degrades selection reliability. The fix is scoping the subagent's tools down to its actual role and splitting the other capabilities into separate specialized subagents, not adding more tokens, a bigger model, or reordering the array."
+    },
+    {
+      "question": "A synthesis subagent, whose job is only to combine already-gathered findings into a report, has full web-search tool access \"just in case.\" Logs show it now occasionally runs its own speculative searches, introducing unsourced content into reports. What is the best fix?",
+      "options": [
+        "Add a system-prompt instruction telling the synthesis agent not to use web search unless necessary.",
+        "Leave tool access as-is, but add a post-hoc review step that flags reports containing unverified claims.",
+        "Give every subagent identical tool access so behavior is consistent across the system.",
+        "Remove general web-search access from the synthesis agent; if it needs occasional simple verification, give it a narrowly scoped verify_fact tool instead, routing complex cases through the coordinator."
+      ],
+      "correct": 3,
+      "explanation": "Agents given tools outside their specialization tend to misuse them — prompt-level discouragement is probabilistic, not a guarantee, so simply asking it not to use the tool doesn't remove the risk. The scoped fix is least-privilege: remove the broad capability, and if there's a genuine high-frequency need for simple verification, provide a narrow purpose-built tool instead while routing harder cases through the coordinator as before."
+    },
+    {
+      "question": "You have three tools available (log_ticket, classify_ticket, notify_team) on a given turn and want to guarantee Claude calls one of them — you don't care which — rather than responding with plain conversational text. Which tool_choice value is correct?",
+      "options": [
+        "{\"type\": \"auto\"}",
+        "{\"type\": \"tool\", \"name\": \"classify_ticket\"}",
+        "{\"type\": \"any\"}",
+        "{\"type\": \"none\"}"
+      ],
+      "correct": 2,
+      "explanation": "\"any\" guarantees a tool call happens without dictating which of the available tools it must be — exactly the requirement here. \"auto\" would still allow a plain text reply. Forcing classify_ticket by name would rule out log_ticket and notify_team, which isn't what's being asked. \"none\" disables tool calling entirely."
+    },
+    {
+      "question": "Your team wants a shared MCP server configuration checked into version control so every developer gets the same tools on clone, with each developer's own credentials supplied locally rather than committed to the repo. Where and how should this be configured?",
+      "options": [
+        "In `~/.claude.json`, with credentials written directly into the file.",
+        "In a project-level `.mcp.json`, using environment variable expansion (e.g. `${GITHUB_TOKEN}`) so secrets are never committed.",
+        "In `CLAUDE.md`, listed as plain-text setup instructions.",
+        "As exported environment variables in each developer's shell profile, with no MCP config file at all."
+      ],
+      "correct": 1,
+      "explanation": "Project-scoped `.mcp.json` is shared, version-controlled team tooling. Environment variable expansion (`${VAR_NAME}`) lets the committed file reference credentials without ever containing them — each developer's own environment supplies the actual value at connection time."
+    },
+    {
+      "question": "You want to try out a new, unstable community MCP server for your own workflow only — it should not affect your teammates or end up committed to the repository. Where should you configure it?",
+      "options": [
+        "Project-level `.mcp.json`, so it's available to test alongside the team's tools.",
+        "A new top-level tools array added directly to the system prompt.",
+        "User-level `~/.claude.json`, so it's available only to you and never affects teammates or the repo.",
+        "A `.mcp-experimental.json` file committed to a feature branch."
+      ],
+      "correct": 2,
+      "explanation": "User-level `~/.claude.json` is exactly for personal or experimental servers that shouldn't be shared or version-controlled. Adding it to the project's `.mcp.json` (even on a branch) risks it landing in the shared config; a system prompt isn't how MCP servers are configured at all."
+    },
+    {
+      "question": "An MCP server exposes dozens of issues in a project tracker. To answer \"what issues exist in this project,\" the agent currently calls a list-issues tool, then calls a get-issue-detail tool once per issue just to build a mental map before it can reason about the actual question. What MCP feature reduces this exploratory overhead?",
+      "options": [
+        "Increase the list-issues tool's page size so more issues return per call.",
+        "Add a fuzzy-matching search_issues tool.",
+        "Cache each get-issue-detail response client-side after the first call.",
+        "Expose an MCP resource — e.g. an issue summary catalog — that the agent can read directly instead of discovering structure through repeated tool calls."
+      ],
+      "correct": 3,
+      "explanation": "MCP resources exist precisely to expose content catalogs (issue summaries, doc hierarchies, DB schemas) so an agent doesn't have to reconstruct that structure through many exploratory tool calls. Bigger pages, fuzzy search, and caching all still require the exploratory round trips in the first place."
+    },
+    {
+      "question": "An agent has both the built-in Grep tool and an MCP-provided search_codebase tool that performs ranked, cross-file semantic search, but Claude keeps defaulting to Grep even when the MCP tool would clearly give better results. What is the most effective fix?",
+      "options": [
+        "Remove the Grep tool from the agent's available tools entirely.",
+        "Rewrite the MCP tool's description to clearly explain its distinct capabilities and output (e.g. semantic, cross-file ranking) so Claude has a concrete reason to prefer it when appropriate.",
+        "Add a system-prompt rule forbidding Grep use under any circumstances.",
+        "Rename the MCP tool to include the word \"grep\" so Claude associates it with the same triggers."
+      ],
+      "correct": 1,
+      "explanation": "The same description-quality principle that governs custom tool routing applies to MCP tools competing with built-ins: a vague description loses to a familiar built-in tool even when the MCP tool is objectively more capable. Removing Grep or banning it outright throws away a legitimately useful tool for cases where Grep actually is the right choice."
+    },
+    {
+      "question": "You need to find every file in a repository matching the naming pattern `*.test.tsx`, regardless of what's written inside them. Which built-in tool is the right choice?",
+      "options": [
+        "Grep, searching file contents for the literal string \".test.tsx\".",
+        "Read, opening every file in the repository and checking its name.",
+        "Bash, with a hand-written recursive directory-walking script.",
+        "Glob, using the pattern `**/*.test.tsx` to match file paths by name."
+      ],
+      "correct": 3,
+      "explanation": "Glob matches file paths/names by pattern and is the purpose-built tool for this job. Grep matches file contents, not paths. Read-everything doesn't scale, and a hand-written Bash script reinvents what Glob already does natively."
+    },
+    {
+      "question": "You try to use Edit to change one specific line, but it reports the anchor text you provided isn't unique — it appears 5 times in the file. What is the correct fallback?",
+      "options": [
+        "Retry Edit with `replace_all: true`, even though only one occurrence should actually change.",
+        "Use Bash with `sed` to force a line-number-based replacement.",
+        "Use Read to load the full file, make the change in memory, then use Write to save the complete updated file.",
+        "Switch to Grep to find the line number, then re-run Edit unchanged."
+      ],
+      "correct": 2,
+      "explanation": "When Edit can't find a unique anchor, the standard fallback is Read the full file, construct the corrected content, and Write it back in one shot. `replace_all: true` would incorrectly change all 5 occurrences; a shell-level sed workaround bypasses the tool's own safety mechanism instead of using the documented fallback."
+    },
+    {
+      "question": "You need to find every caller of a deprecated formatCurrency function in a 200-file codebase, including calls made through a wrapper module that re-exports it under a different name. What is the most effective approach?",
+      "options": [
+        "Read every file in the repository in full before deciding where the function is used.",
+        "Ask Claude to guess likely call sites from the function's name alone, without searching the codebase.",
+        "Use Glob to find all `.js`/`.ts` files, then Read each one in full to visually scan for the function name.",
+        "Grep for the function name directly, identify any modules that re-export it under a different name, then Grep separately for each of those exported names."
+      ],
+      "correct": 3,
+      "explanation": "Incremental codebase understanding starts with Grep for entry points rather than reading everything upfront. Because the function is re-exported under another name by a wrapper module, a single Grep for the original name would miss those call sites — the reliable approach is to first find all exported names, then Grep each one across the codebase."
+    }
+  ]
+}
